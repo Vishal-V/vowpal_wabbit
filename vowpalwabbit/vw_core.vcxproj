@@ -176,6 +176,7 @@
     <ClInclude Include="cs_active.h" />
     <ClInclude Include="csoaa.h" />
     <ClInclude Include="decision_scores.h" />
+    <ClCompile Include="delete_ftr.h" />
     <ClInclude Include="distributionally_robust.h" />
     <ClInclude Include="ect.h" />
     <ClInclude Include="error_constants.h" />
@@ -340,6 +341,7 @@
     <ClCompile Include="cs_active.cc" />
     <ClCompile Include="csoaa.cc" />
     <ClCompile Include="decision_scores.cc" />
+    <ClCompile Include="delete_ftr.cc" />
     <ClCompile Include="distributionally_robust.cc" />
     <ClCompile Include="ect.cc" />
     <ClCompile Include="example_predict.cc" />

@@ -100,6 +100,7 @@ set(vw_all_headers
   csoaa.h
   debug_print.h
   decision_scores.h
+  delete_ftr.h
   distributionally_robust.h
   ect.h
   error_constants.h
@@ -276,6 +277,7 @@ set(vw_all_sources
   cs_active.cc
   csoaa.cc
   decision_scores.cc
+  delete_ftr.cc
   distributionally_robust.cc
   ect.cc
   example_predict.cc
