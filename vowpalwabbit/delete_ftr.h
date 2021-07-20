@@ -11,5 +11,5 @@ namespace VW
 namespace DELETE_FTR
 {
 VW::LEARNER::base_learner* delete_ftr_setup(VW::config::options_i& options, vw& all);
-}
+}  // namespace DELETE_FTR
 }  // namespace VW
