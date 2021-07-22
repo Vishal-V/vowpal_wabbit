@@ -20,7 +20,8 @@ void predict_or_learn(VW::LEARNER::single_learner& base, example& ec)
 
     // TODO: How to call hash from the reduction.
     // TODO: word_hash = (_p->hasher(feature_name.begin(), feature_name.length(), _channel_hash) & _parse_mask);
-    // TODO: This is the hash that should be deleted. Go to the example and find that hash.
+    // TODO: Which hash needs to be deleted. Go to the example and find that hash.
+    // TODO: Use the namespace to get the namespace-feature dictionary lists and then delete? <cb_explore_adf_common>
   }
   else
   {
@@ -36,6 +37,8 @@ VW::LEARNER::base_learner* delete_ftr_setup(VW::config::options_i& options, vw& 
   std::string s;
   option_group_definition new_options("Delete features");
   new_options.add(make_option("del_ftr", s)).help("Specify features to delete."));
+
+  if (!options.add_parse_and_check_necessary(new_options)) return nullptr;
 
   base_learner* base_learn = setup_base(options, all);
   if (base_learn->is_multiline)
