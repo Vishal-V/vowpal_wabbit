@@ -5,6 +5,7 @@
 #include "reductions.h"
 #include "learner.h"
 #include "parse_example.h"
+#include "reduction_stack.h"
 
 #include "io/logger.h"
 
