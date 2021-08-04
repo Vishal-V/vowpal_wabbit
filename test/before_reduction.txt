@@ -1,0 +1,38 @@
+predictions = predictions.txt
+Num weight bits = 18
+learning rate = 0.5
+initial_t = 0
+power_t = 0.5
+using no cache
+Reading datafile = sample_data.txt
+num sources = 1
+Enabled reductions: gd, scorer-identity
+average  since         example        example  current  current  current
+loss     last          counter         weight    label  predict features
+0
+        anand:162511:1:0@0      b:163331:1:0@0
+1.000000 1.000000            1            2.0   1.0000   0.0000        2
+0
+        d:70771:1:0@0
+1.000000 1.000000            2            3.0   1.0000   0.0000        1
+0.642095
+        d:70771:2:0.321047@4
+0.782024 0.128096            3            4.0   1.0000   0.6421        1
+0
+        bring:220043:1:0@0
+0.625619 0.000000            4            5.0   0.0000   0.0000        1
+0
+        econom:205528:1:0@0
+0.688016 1.000000            5            6.0   1.0000   0.0000        1
+0
+        market:57136:1:0@0
+0.589728 0.000000            6            7.0   0.0000   0.0000        1
+
+finished run
+number of examples = 6
+weighted example sum = 7.000000
+weighted label sum = 5.000000
+average loss = 0.589728
+best constant = 0.714286
+best constant's loss = 0.204082
+total feature number = 7

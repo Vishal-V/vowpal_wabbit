@@ -28,7 +28,7 @@ struct feature_data
 };
 
 // Maybe return feature*? void (*fn)(feature* ftr, size_t hash)
-void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ftr))
+example* manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ftr))
 {
   size_t ftr_num = (&ec)->num_features;  // get_feature_number(&ec);
   data.num_ftr = ftr_num;
@@ -43,9 +43,12 @@ void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ft
   feature* ftr = nullptr;  // Modify after test
   data.manip_flag = 1;     // Modify after test
   if (data.manip_flag)
-    return;
+    return ec_copy;  // data.manip_ec;
   else
+  {
     (*fn)(ftr);  // (*fn)(ftr, hash_val);
+    return nullptr;
+  }
 }
 
 void delete_feature(feature* ftr) { return_features(ftr); }
@@ -59,10 +62,10 @@ void predict_or_learn(feature_data& data, T& base, E& ec)
     data.ftr_names = "b";       // Temporary hard-code
     // feature* get_features(vw& all, example* ec, size_t& feature_number);
     // VW::io::logger::errlog_warn("Feature to be deleted: {} from total features.", data.ftr_names);
-    manipulate_features(data, ec, delete_feature);
-    // if (data.manip_flag) { base.learn(*data.manip_ec); }
-    // else
-    base.learn(ec);
+    example* mod_ec = manipulate_features(data, ec, delete_feature);
+    if (!data.manip_flag) { base.learn(*mod_ec); }
+    else
+      base.learn(ec);
 
     // TODO: test_case for hashing and deleting
     // TODO: Design a class structure
