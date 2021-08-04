@@ -19,6 +19,7 @@ namespace DELETE_FTR
 {
 struct feature_data
 {
+  vw* all;
   std::string namespace_name;
   std::string ftr_names;
   example* manip_ec;
@@ -63,12 +64,12 @@ void predict_or_learn(feature_data& data, T& base, E& ec)
     copy_example_data_with_label(copy_ec, &ec);
     data.non_manip = copy_ec;
     manipulate_features(data, ec, delete_feature);
-    if (data.manip_flag) { base.learn(ec); }
+    if (!data.manip_flag) { base.learn(ec); }
     else
     {
       base.learn(*data.non_manip);
     }
-    // base.learn(ec);
+    ec.pred.scalar = std::move(data.non_manip->pred.scalar);
 
     // TODO: test_case for hashing and deleting
     // TODO: Design a class structure
@@ -89,6 +90,7 @@ VW::LEARNER::base_learner* delete_ftr_setup(VW::config::options_i& options, vw& 
 
   option_group_definition new_options("Delete features");
   new_options.add(make_option("del_ftr", data->ftr_names).help("Specify features to delete."));
+  data->all = &all;
 
   // if (!options.add_parse_and_check_necessary(new_options)) return nullptr;
   options.add_and_parse(new_options);

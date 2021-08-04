@@ -1315,7 +1315,7 @@ void parse_reductions(options_i& options, vw& all)
   // reductions.push_back(VW_CNTK::setup);
 
   reductions.push_back(mf_setup);
-  reductions.push_back(VW::DELETE_FTR::delete_ftr_setup);
+  // reductions.push_back(VW::DELETE_FTR::delete_ftr_setup);
   reductions.push_back(generate_interactions_setup);
 
   // Score Users
@@ -1331,6 +1331,7 @@ void parse_reductions(options_i& options, vw& all)
   reductions.push_back(lrqfa_setup);
   reductions.push_back(stagewise_poly_setup);
   reductions.push_back(scorer_setup);
+  reductions.push_back(VW::DELETE_FTR::delete_ftr_setup);
   reductions.push_back(VW::cbzo::setup);
 
   // Reductions
