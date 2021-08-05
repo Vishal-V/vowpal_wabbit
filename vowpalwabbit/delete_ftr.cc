@@ -31,30 +31,44 @@ struct feature_data
   size_t manip_flag = 0;
   size_t namespace_hash;
   size_t ftr_hash;
+  size_t value = 1;
 };
 
 inline void delete_feature(feature* ftr) { return_features(ftr); }
 
-// typedef std::array<features, 1> feature_space;
-inline void modify_feature(example& ec, namespace_index index, size_t feature_hash, float value = 1)
+inline void delete_feature(example& ec, namespace_index index, size_t feature_hash)
 {
-  // VW::io::logger::log_warn("Features: {}, {}, {}", feature_hash, fs.indicies[0], fs.values[0]);
   if (ec.feature_space[index].indicies[0] == feature_hash)
   {
-    ec.feature_space[index].indicies[0] = feature_hash;
-    ec.feature_space[index].values[0] = value;
+    // ec.feature_space[index].indicies[0] = feature_hash;
+    // ec.feature_space[index].values[0] = value;
     VW::io::logger::log_warn(
         "Value modified for feature_hash {} to {}", feature_hash, ec.feature_space[index].values[0]);
   }
 }
 
-inline void dont_modify_feature(example& ec, namespace_index index, size_t feature_hash, float value = 1)
+// typedef std::array<features, 1> feature_space;
+inline void modify_feature(example& ec, namespace_index index, size_t feature_hash, int& idx_ret, float value = 1)
 {
-  auto fs = ec.feature_space[index];
   // VW::io::logger::log_warn("Features: {}, {}, {}", feature_hash, fs.indicies[0], fs.values[0]);
-  if (fs.indicies[0] == feature_hash)
+  for (unsigned int idx = 0; idx < ec.feature_space[index].indicies.size(); idx++)
   {
-    VW::io::logger::log_warn("Check:: modified for feature_hash {} to {}", feature_hash, fs.values[0]);
+    if (ec.feature_space[index].indicies[idx] == feature_hash)
+    {
+      ec.feature_space[index].values[idx] = value;
+      VW::io::logger::log_warn(
+          "Value modified for feature_hash {} to {}", feature_hash, ec.feature_space[index].values[idx]);
+      idx_ret = idx;
+    }
+  }
+}
+
+inline void check_modify_feature(example& ec, namespace_index index, size_t feature_hash, int idx)
+{
+  if (ec.feature_space[index].indicies[idx] == feature_hash)
+  {
+    VW::io::logger::log_warn(
+        "Check: modified for feature_hash {} to {}", feature_hash, ec.feature_space[index].values[idx]);
   }
 }
 
@@ -67,13 +81,14 @@ void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ft
   if (data.all->options->was_supplied("del_ftr"))
   {
     std::vector<namespace_index> nms;
+    int idx = 0;
     for (namespace_index c : ec.indices) nms.push_back(c);
     data.namespace_hash = hash_space(*(data.all), data.namespace_name);
     data.ftr_hash = hash_feature(*(data.all), data.ftr_names, data.namespace_hash);
     // TODO: Find the namespace index for the feature. Maybe use the option of namespace
     uint64_t multiplier = static_cast<uint64_t>(data.all->wpp) << data.all->weights.stride_shift();
-    modify_feature(ec, (char)nms[0], data.ftr_hash * multiplier, 11);
-    dont_modify_feature(ec, (char)nms[0], data.ftr_hash * multiplier, 11);
+    modify_feature(ec, (char)nms[0], data.ftr_hash * multiplier, idx, data.value);
+    check_modify_feature(ec, (char)nms[0], data.ftr_hash * multiplier, idx);
 
     feature* ftr = nullptr;        // Modify after test
     if (*fn) data.manip_flag = 1;  // Modify after test
@@ -97,12 +112,13 @@ void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ft
 template <bool is_learn, typename T, typename E>
 void predict_or_learn(feature_data& data, T& base, E& ec)
 {
+  example* copy_ec = alloc_examples(1);
+  copy_example_data_with_label(copy_ec, &ec);
+  data.non_manip = copy_ec;
+  manipulate_features(data, ec, delete_feature);
+
   if (is_learn)
   {
-    example* copy_ec = alloc_examples(1);
-    copy_example_data_with_label(copy_ec, &ec);
-    data.non_manip = copy_ec;
-    manipulate_features(data, ec, delete_feature);
     if (data.manip_flag) { base.learn(ec); }
     else
     {
@@ -118,8 +134,12 @@ void predict_or_learn(feature_data& data, T& base, E& ec)
   }
   else
   {
-    // TODO: Predict with and without the feature for comparison side-by-side
-    base.predict(ec);
+    if (data.manip_flag) { base.predict(ec); }
+    else
+    {
+      base.predict(*data.non_manip);
+      ec.pred.scalar = std::move(data.non_manip->pred.scalar);
+    }
   }
 }
 
@@ -131,7 +151,8 @@ VW::LEARNER::base_learner* delete_ftr_setup(VW::config::options_i& options, vw& 
   option_group_definition new_options("Delete features");
   new_options.add(make_option("del_ftr", data->ftr_names).help("Specify features to delete."));
   new_options.add(
-      make_option("del_ftr_nms", data->namespace_name).help("Specify namespace for the feature to be modiifed."));
+      make_option("del_ftr_nms", data->namespace_name).help("Specify namespace for the feature to be modified."));
+  new_options.add(make_option("mod_val", data->value).help("Specify the modified value for the feature."));
 
   options.add_and_parse(new_options);
   data->all = &all;
