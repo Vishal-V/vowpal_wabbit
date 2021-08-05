@@ -1,38 +1,62 @@
-predictions = predictions.txt
-Num weight bits = 18
-learning rate = 0.5
-initial_t = 0
-power_t = 0.5
-using no cache
-Reading datafile = sample_data.txt
-num sources = 1
-Enabled reductions: gd, scorer-identity
-average  since         example        example  current  current  current
-loss     last          counter         weight    label  predict features
-0
-        anand:162511:1:0@0      b:163331:1:0@0
-1.000000 1.000000            1            2.0   1.0000   0.0000        2
-0
-        d:70771:1:0@0
-1.000000 1.000000            2            3.0   1.0000   0.0000        1
-0.642095
-        d:70771:2:0.321047@4
-0.782024 0.128096            3            4.0   1.0000   0.6421        1
-0
-        bring:220043:1:0@0
-0.625619 0.000000            4            5.0   0.0000   0.0000        1
-0
-        econom:205528:1:0@0
-0.688016 1.000000            5            6.0   1.0000   0.0000        1
-0
-        market:57136:1:0@0
-0.589728 0.000000            6            7.0   0.0000   0.0000        1
-
-finished run
-number of examples = 6
-weighted example sum = 7.000000
-weighted label sum = 5.000000
-average loss = 0.589728
-best constant = 0.714286
-best constant's loss = 0.204082
-total feature number = 7
+*** Error in `../build/vowpalwabbit/vw': free(): invalid size: 0x0000000001edb6a0 ***
+======= Backtrace: =========
+/lib/x86_64-linux-gnu/libc.so.6(+0x777f5)[0x7f030373e7f5]
+/lib/x86_64-linux-gnu/libc.so.6(+0x8038a)[0x7f030374738a]
+/lib/x86_64-linux-gnu/libc.so.6(cfree+0x4c)[0x7f030374b58c]
+../build/vowpalwabbit/vw[0x614440]
+../build/vowpalwabbit/vw[0x6c3b8c]
+../build/vowpalwabbit/vw[0x41bf36]
+../build/vowpalwabbit/vw[0x4185ca]
+../build/vowpalwabbit/vw[0x411527]
+/lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0xf0)[0x7f03036e7840]
+../build/vowpalwabbit/vw[0x414a19]
+======= Memory map: ========
+00400000-00881000 r-xp 00000000 08:20 141866                             /root/vowpal_wabbit/build/vowpalwabbit/vw
+00a80000-00a8a000 r--p 00480000 08:20 141866                             /root/vowpal_wabbit/build/vowpalwabbit/vw
+00a8a000-00a8c000 rw-p 0048a000 08:20 141866                             /root/vowpal_wabbit/build/vowpalwabbit/vw
+00a8c000-00a8e000 rw-p 00000000 00:00 0 
+01e10000-01ef7000 rw-p 00000000 00:00 0                                  [heap]
+7f02fc000000-7f02fc021000 rw-p 00000000 00:00 0 
+7f02fc021000-7f0300000000 ---p 00000000 00:00 0 
+7f0302493000-7f0302494000 ---p 00000000 00:00 0 
+7f0302494000-7f03036c7000 rw-p 00000000 00:00 0 
+7f03036c7000-7f0303887000 r-xp 00000000 08:20 2368                       /lib/x86_64-linux-gnu/libc-2.23.so
+7f0303887000-7f0303a87000 ---p 001c0000 08:20 2368                       /lib/x86_64-linux-gnu/libc-2.23.so
+7f0303a87000-7f0303a8b000 r--p 001c0000 08:20 2368                       /lib/x86_64-linux-gnu/libc-2.23.so
+7f0303a8b000-7f0303a8d000 rw-p 001c4000 08:20 2368                       /lib/x86_64-linux-gnu/libc-2.23.so
+7f0303a8d000-7f0303a91000 rw-p 00000000 00:00 0 
+7f0303a91000-7f0303aa9000 r-xp 00000000 08:20 2436                       /lib/x86_64-linux-gnu/libpthread-2.23.so
+7f0303aa9000-7f0303ca8000 ---p 00018000 08:20 2436                       /lib/x86_64-linux-gnu/libpthread-2.23.so
+7f0303ca8000-7f0303ca9000 r--p 00017000 08:20 2436                       /lib/x86_64-linux-gnu/libpthread-2.23.so
+7f0303ca9000-7f0303caa000 rw-p 00018000 08:20 2436                       /lib/x86_64-linux-gnu/libpthread-2.23.so
+7f0303caa000-7f0303cae000 rw-p 00000000 00:00 0 
+7f0303cae000-7f0303cc4000 r-xp 00000000 08:20 2389                       /lib/x86_64-linux-gnu/libgcc_s.so.1
+7f0303cc4000-7f0303ec3000 ---p 00016000 08:20 2389                       /lib/x86_64-linux-gnu/libgcc_s.so.1
+7f0303ec3000-7f0303ec4000 rw-p 00015000 08:20 2389                       /lib/x86_64-linux-gnu/libgcc_s.so.1
+7f0303ec4000-7f0303fcc000 r-xp 00000000 08:20 2400                       /lib/x86_64-linux-gnu/libm-2.23.so
+7f0303fcc000-7f03041cb000 ---p 00108000 08:20 2400                       /lib/x86_64-linux-gnu/libm-2.23.so
+7f03041cb000-7f03041cc000 r--p 00107000 08:20 2400                       /lib/x86_64-linux-gnu/libm-2.23.so
+7f03041cc000-7f03041cd000 rw-p 00108000 08:20 2400                       /lib/x86_64-linux-gnu/libm-2.23.so
+7f03041cd000-7f030433f000 r-xp 00000000 08:20 3271                       /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.21
+7f030433f000-7f030453f000 ---p 00172000 08:20 3271                       /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.21
+7f030453f000-7f0304549000 r--p 00172000 08:20 3271                       /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.21
+7f0304549000-7f030454b000 rw-p 0017c000 08:20 3271                       /usr/lib/x86_64-linux-gnu/libstdc++.so.6.0.21
+7f030454b000-7f030454f000 rw-p 00000000 00:00 0 
+7f030454f000-7f0304568000 r-xp 00000000 08:20 2467                       /lib/x86_64-linux-gnu/libz.so.1.2.8
+7f0304568000-7f0304767000 ---p 00019000 08:20 2467                       /lib/x86_64-linux-gnu/libz.so.1.2.8
+7f0304767000-7f0304768000 r--p 00018000 08:20 2467                       /lib/x86_64-linux-gnu/libz.so.1.2.8
+7f0304768000-7f0304769000 rw-p 00019000 08:20 2467                       /lib/x86_64-linux-gnu/libz.so.1.2.8
+7f0304769000-7f03047e3000 r-xp 00000000 08:20 26188                      /usr/lib/x86_64-linux-gnu/libboost_program_options.so.1.58.0
+7f03047e3000-7f03049e3000 ---p 0007a000 08:20 26188                      /usr/lib/x86_64-linux-gnu/libboost_program_options.so.1.58.0
+7f03049e3000-7f03049e6000 r--p 0007a000 08:20 26188                      /usr/lib/x86_64-linux-gnu/libboost_program_options.so.1.58.0
+7f03049e6000-7f03049e7000 rw-p 0007d000 08:20 26188                      /usr/lib/x86_64-linux-gnu/libboost_program_options.so.1.58.0
+7f03049e7000-7f0304a0d000 r-xp 00000000 08:20 2348                       /lib/x86_64-linux-gnu/ld-2.23.so
+7f0304bfc000-7f0304c04000 rw-p 00000000 00:00 0 
+7f0304c0b000-7f0304c0c000 rw-p 00000000 00:00 0 
+7f0304c0c000-7f0304c0d000 r--p 00025000 08:20 2348                       /lib/x86_64-linux-gnu/ld-2.23.so
+7f0304c0d000-7f0304c0e000 rw-p 00026000 08:20 2348                       /lib/x86_64-linux-gnu/ld-2.23.so
+7f0304c0e000-7f0304c0f000 rw-p 00000000 00:00 0 
+7ffc03d2a000-7ffc03d4b000 rw-p 00000000 00:00 0                          [stack]
+7ffc03d7c000-7ffc03d80000 r--p 00000000 00:00 0                          [vvar]
+7ffc03d80000-7ffc03d81000 r-xp 00000000 00:00 0                          [vdso]
+Aborted

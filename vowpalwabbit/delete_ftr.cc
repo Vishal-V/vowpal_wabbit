@@ -28,27 +28,34 @@ struct feature_data
   size_t manip_flag = 0;
 };
 
+void delete_feature(feature* ftr) { return_features(ftr); }
+
 // Maybe return feature*? void (*fn)(feature* ftr, size_t hash)
 void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ftr) = nullptr)
 {
   size_t ftr_num = (&ec)->num_features;  // get_feature_number(&ec);
   data.num_ftr = ftr_num;
+  feature* ftr = get_features(*(data.all), &ec, (&data)->num_ftr);
+  VW::io::logger::errlog_warn("Feature map_len {} from total features.", data.num_ftr);
   // TODO: match feature with hash and get the feature pointer for example
   // size_t get_feature_hash(std::string ftr_name) in example.cc
   // int check_feature_hash_exists(size_t hash) in example.cc
   // feature* get_feature_with_hash(size_t hash) in example.cc
   // TODO: Hash and add the feature to the example after manipulation
-  feature* ftr = nullptr;        // Modify after test
+  // feature* ftr = nullptr;        // Modify after test
   if (*fn) data.manip_flag = 1;  // Modify after test
+  int random = 1;
   if (data.manip_flag)
+  {
+    // delete_feature((ftr + 1));
+    random++;
     return;  // data.manip_ec;
+  }
   else
   {
     (*fn)(ftr);  // (*fn)(ftr, hash_val);
   }
 }
-
-void delete_feature(feature* ftr) { return_features(ftr); }
 
 template <bool is_learn, typename T, typename E>
 void predict_or_learn(feature_data& data, T& base, E& ec)
@@ -64,12 +71,12 @@ void predict_or_learn(feature_data& data, T& base, E& ec)
     copy_example_data_with_label(copy_ec, &ec);
     data.non_manip = copy_ec;
     manipulate_features(data, ec, delete_feature);
-    if (!data.manip_flag) { base.learn(ec); }
+    if (data.manip_flag) { base.learn(ec); }
     else
     {
       base.learn(*data.non_manip);
+      ec.pred.scalar = std::move(data.non_manip->pred.scalar);
     }
-    ec.pred.scalar = std::move(data.non_manip->pred.scalar);
 
     // TODO: test_case for hashing and deleting
     // TODO: Design a class structure
