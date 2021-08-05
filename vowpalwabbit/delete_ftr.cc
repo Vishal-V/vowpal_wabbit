@@ -35,6 +35,19 @@ struct feature_data
 
 inline void delete_feature(feature* ftr) { return_features(ftr); }
 
+// typedef std::array<features, 1> feature_space;
+inline void modify_feature(example& ec, namespace_index index, size_t feature_hash, float value = 1)
+{
+  auto fs = ec.feature_space[index];
+  VW::io::logger::log_warn("FTR_Hash {}: Features: {}, {}", feature_hash, fs.indicies[0], fs.values[0]);
+  if (fs.indicies[0] == 283084)
+  {
+    // fs.indicies[feature_hash] = feature_hash;
+    fs.values[0] = value;
+    VW::io::logger::log_warn("After_mod {}", fs.values[0]);
+  }
+}
+
 void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ftr) = nullptr)
 {
   size_t ftr_num = (&ec)->num_features;  // get_feature_number(&ec);
@@ -48,7 +61,7 @@ void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ft
     data.namespace_hash = hash_space(*(data.all), data.namespace_name);
     data.ftr_hash = hash_feature(*(data.all), data.ftr_names, data.namespace_hash);
     // TODO: Find the namespace index for the feature. Maybe use the option of namespace
-    // TODO: Create modify feature
+    modify_feature(ec, (char)nms[0], data.ftr_hash, 11);
   }
 
   // TODO: match feature with hash and get the feature pointer for example
