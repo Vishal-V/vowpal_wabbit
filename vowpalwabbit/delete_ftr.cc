@@ -2,11 +2,14 @@
 // individual contributors. All rights reserved. Released under a BSD (revised)
 // license as described in the file LICENSE.
 
+#include <vector>
 #include "reductions.h"
 #include "learner.h"
 #include "parse_example.h"
 #include "parser.h"
 #include "example.h"
+#include "feature_group.h"
+#include <boost/type_index.hpp>
 
 #include "io/logger.h"
 
@@ -20,23 +23,34 @@ namespace DELETE_FTR
 struct feature_data
 {
   vw* all;
-  std::string namespace_name;
+  std::string namespace_name = " ";
   std::string ftr_names;
   example* manip_ec;
   example* non_manip;
   size_t num_ftr = 0;
   size_t manip_flag = 0;
+  size_t namespace_hash;
+  size_t ftr_hash;
 };
 
-void delete_feature(feature* ftr) { return_features(ftr); }
+inline void delete_feature(feature* ftr) { return_features(ftr); }
 
-// Maybe return feature*? void (*fn)(feature* ftr, size_t hash)
 void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ftr) = nullptr)
 {
   size_t ftr_num = (&ec)->num_features;  // get_feature_number(&ec);
   data.num_ftr = ftr_num;
   feature* ftr = get_features(*(data.all), &ec, (&data)->num_ftr);
-  VW::io::logger::errlog_warn("Feature map_len {} from total features.", data.num_ftr);
+
+  if (data.all->options->was_supplied("del_ftr"))
+  {
+    std::vector<namespace_index> nms;
+    for (namespace_index c : ec.indices) nms.push_back(c);
+    data.namespace_hash = hash_space(*(data.all), data.namespace_name);
+    data.ftr_hash = hash_feature(*(data.all), data.ftr_names, data.namespace_hash);
+    // TODO: Find the namespace index for the feature. Maybe use the option of namespace
+    // TODO: Create modify feature
+  }
+
   // TODO: match feature with hash and get the feature pointer for example
   // size_t get_feature_hash(std::string ftr_name) in example.cc
   // int check_feature_hash_exists(size_t hash) in example.cc
@@ -44,11 +58,9 @@ void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ft
   // TODO: Hash and add the feature to the example after manipulation
   // feature* ftr = nullptr;        // Modify after test
   if (*fn) data.manip_flag = 1;  // Modify after test
-  int random = 1;
   if (data.manip_flag)
   {
     // delete_feature((ftr + 1));
-    random++;
     return;  // data.manip_ec;
   }
   else
@@ -62,11 +74,6 @@ void predict_or_learn(feature_data& data, T& base, E& ec)
 {
   if (is_learn)
   {
-    data.namespace_name = " ";  // Temporary hard-code
-    data.ftr_names = "b";       // Temporary hard-code
-    // feature* get_features(vw& all, example* ec, size_t& feature_number);
-    // VW::io::logger::errlog_warn("Feature to be deleted: {} from total features.", data.ftr_names);
-
     example* copy_ec = alloc_examples(1);
     copy_example_data_with_label(copy_ec, &ec);
     data.non_manip = copy_ec;
@@ -95,12 +102,19 @@ VW::LEARNER::base_learner* delete_ftr_setup(VW::config::options_i& options, vw& 
 {
   auto data = scoped_calloc_or_throw<feature_data>();
 
+  // TODO: Option to specify the namespace from which to delete
   option_group_definition new_options("Delete features");
   new_options.add(make_option("del_ftr", data->ftr_names).help("Specify features to delete."));
+  new_options.add(
+      make_option("del_ftr_nms", data->namespace_name).help("Specify namespace for the feature to be modiifed."));
+
+  options.add_and_parse(new_options);
   data->all = &all;
 
   // if (!options.add_parse_and_check_necessary(new_options)) return nullptr;
-  options.add_and_parse(new_options);
+
+  if (all.options->was_supplied("del_ftr"))
+    VW::io::logger::log_warn("Setup options for deleting feature: {}.", data->ftr_names);
 
   base_learner* base_learn = setup_base(options, all);
 
