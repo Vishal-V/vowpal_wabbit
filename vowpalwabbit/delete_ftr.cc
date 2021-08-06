@@ -29,16 +29,18 @@ struct feature_data
   example* non_manip;
   size_t num_ftr = 0;
   size_t manip_flag = 0;
+  size_t mod_flag = 0;
   size_t namespace_hash;
   size_t ftr_hash;
-  size_t value = 1;
+  double value = 1;
+  namespace_index index = ' ';
 };
 
 inline void delete_feature(feature* ftr) { return_features(ftr); }
 
 inline void delete_feature(example& ec, namespace_index index, size_t feature_hash)
 {
-  if (ec.feature_space[index].indicies[0] == feature_hash)
+  if (ec.feature_space[index].indicies[0] == feature_hash)  // TODO
   {
     // ec.feature_space[index].indicies[0] = feature_hash;
     // ec.feature_space[index].values[0] = value;
@@ -47,17 +49,20 @@ inline void delete_feature(example& ec, namespace_index index, size_t feature_ha
   }
 }
 
-// typedef std::array<features, 1> feature_space;
-inline void modify_feature(example& ec, namespace_index index, size_t feature_hash, int& idx_ret, float value = 1)
+inline void modify_feature(
+    example& ec, namespace_index index, size_t feature_hash, int& idx_ret, float value = 1, int mod_flag = 0)
 {
   // VW::io::logger::log_warn("Features: {}, {}, {}", feature_hash, fs.indicies[0], fs.values[0]);
   for (unsigned int idx = 0; idx < ec.feature_space[index].indicies.size(); idx++)
   {
     if (ec.feature_space[index].indicies[idx] == feature_hash)
     {
-      ec.feature_space[index].values[idx] = value;
-      VW::io::logger::log_warn(
-          "Value modified for feature_hash {} to {}", feature_hash, ec.feature_space[index].values[idx]);
+      if (ec.feature_space[index].values[idx] != value && mod_flag)
+      {
+        ec.feature_space[index].values[idx] = value;
+        VW::io::logger::log_warn(
+            "Value modified for feature_hash {} to {}", feature_hash, ec.feature_space[index].values[idx]);
+      }
       idx_ret = idx;
     }
   }
@@ -68,7 +73,7 @@ inline void check_modify_feature(example& ec, namespace_index index, size_t feat
   if (ec.feature_space[index].indicies[idx] == feature_hash)
   {
     VW::io::logger::log_warn(
-        "Check: modified for feature_hash {} to {}", feature_hash, ec.feature_space[index].values[idx]);
+        "Check: modification of feature_hash {} to {}", feature_hash, ec.feature_space[index].values[idx]);
   }
 }
 
@@ -78,15 +83,19 @@ void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ft
   // data.num_ftr = ftr_num;
   // feature* ftr = get_features(*(data.all), &ec, (&data)->num_ftr);
 
-  std::vector<namespace_index> nms;
   int idx = 0;
-  for (namespace_index c : ec.indices) nms.push_back(c);
+  for (namespace_index c : ec.indices)
+  {
+    data.index = c;
+    if (c == (namespace_index)data.namespace_name[0]) break;
+  }
+
   data.namespace_hash = hash_space(*(data.all), data.namespace_name);
   data.ftr_hash = hash_feature(*(data.all), data.ftr_names, data.namespace_hash);
   // TODO: Find the namespace index for the feature. Maybe use the option of namespace
   uint64_t multiplier = static_cast<uint64_t>(data.all->wpp) << data.all->weights.stride_shift();
-  modify_feature(ec, (char)nms[0], data.ftr_hash * multiplier, idx, data.value);
-  check_modify_feature(ec, (char)nms[0], data.ftr_hash * multiplier, idx);
+  modify_feature(ec, data.index, data.ftr_hash * multiplier, idx, data.value, data.mod_flag);
+  if (data.mod_flag) check_modify_feature(ec, data.index, data.ftr_hash * multiplier, idx);
 
   feature* ftr = nullptr;        // Modify after test
   if (*fn) data.manip_flag = 1;  // Modify after test
@@ -126,9 +135,6 @@ void predict_or_learn(feature_data& data, T& base, E& ec)
 
       // TODO: test_case for hashing and deleting
       // TODO: Design a class structure
-      // TODO: How to call hash from the reduction.
-      // TODO: word_hash = (_p->hasher(feature_name.begin(), feature_name.length(), _channel_hash) & _parse_mask);
-      // TODO: Which hash needs to be deleted. Go to the example and find that hash.
     }
     else
     {
@@ -166,7 +172,8 @@ VW::LEARNER::base_learner* delete_ftr_setup(VW::config::options_i& options, vw& 
   // if (!options.add_parse_and_check_necessary(new_options)) return nullptr;
 
   if (all.options->was_supplied("del_ftr"))
-    VW::io::logger::log_warn("Setup options for deleting feature: {}.", data->ftr_names);
+    VW::io::logger::log_warn("Setup options for deleting feature name: {}", data->ftr_names);
+  if (all.options->was_supplied("mod_val")) data->mod_flag = 1;
 
   base_learner* base_learn = setup_base(options, all);
 
