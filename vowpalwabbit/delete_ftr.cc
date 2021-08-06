@@ -25,9 +25,8 @@ struct feature_data
   vw* all;
   std::string namespace_name = " ";
   std::string ftr_names;
-  example* manip_ec;
-  example buffer_ec;
-  example* non_manip;
+  // example buffer_ec;
+  example* modify;
   size_t num_ftr = 0;
   size_t manip_flag = 0;
   size_t mod_flag = 0;
@@ -39,14 +38,6 @@ struct feature_data
   size_t rename_flag = 0;
   std::string mod_ftr_name;
 };
-
-void add_label(example* ec, float label, float weight, float base)
-{
-  ec->l.simple.label = label;
-  auto& simple_red_features = ec->_reduction_features.template get<simple_label_reduction_features>();
-  simple_red_features.initial = base;
-  ec->weight = weight;
-}
 
 inline void delete_feature(feature* ftr) { return_features(ftr); }
 
@@ -144,15 +135,15 @@ void predict_or_learn(feature_data& data, T& base, E& ec)
   // {
   example* copy_ec = alloc_examples(1);
   copy_example_data_with_label(copy_ec, &ec);
-  data.non_manip = copy_ec;
-  manipulate_features(data, ec, delete_feature);
+  data.modify = copy_ec;
+  manipulate_features(data, *data.modify, delete_feature);
   if (is_learn)
   {
-    if (data.manip_flag) { base.learn(ec); }
+    if (!data.manip_flag) { base.learn(ec); }
     else
     {
-      base.learn(*data.non_manip);
-      ec.pred.scalar = std::move(data.non_manip->pred.scalar);
+      base.learn(*data.modify);
+      ec.pred.scalar = std::move(data.modify->pred.scalar);
     }
 
     // TODO: test_case for hashing and deleting
@@ -160,11 +151,11 @@ void predict_or_learn(feature_data& data, T& base, E& ec)
   }
   else
   {
-    if (data.manip_flag) { base.predict(ec); }
+    if (!data.manip_flag) { base.predict(ec); }
     else
     {
-      base.predict(*data.non_manip);
-      ec.pred.scalar = std::move(data.non_manip->pred.scalar);
+      base.predict(*data.modify);
+      ec.pred.scalar = std::move(data.modify->pred.scalar);
     }
   }
   // }
