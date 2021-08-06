@@ -1273,7 +1273,7 @@ void register_reductions(vw& all, std::vector<reduction_setup_fn>& reductions)
       {VW::cb_explore_adf::greedy::setup, "cb_explore_adf_greedy"},
       {VW::cb_explore_adf::regcb::setup, "cb_explore_adf_regcb"},
       {VW::shared_feature_merger::shared_feature_merger_setup, "shared_feature_merger"},
-      {VW::DELETE_FTR::delete_ftr_setup, "del_ftr"}, {generate_interactions_setup, "generate_interactions"}};
+      {generate_interactions_setup, "generate_interactions"}};
 
   auto name_extractor = options_name_extractor();
   vw dummy_all;

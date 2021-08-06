@@ -26,6 +26,7 @@ struct feature_data
   std::string namespace_name = " ";
   std::string ftr_names;
   example* manip_ec;
+  example buffer_ec;
   example* non_manip;
   size_t num_ftr = 0;
   size_t manip_flag = 0;
@@ -38,6 +39,14 @@ struct feature_data
   size_t rename_flag = 0;
   std::string mod_ftr_name;
 };
+
+void add_label(example* ec, float label, float weight, float base)
+{
+  ec->l.simple.label = label;
+  auto& simple_red_features = ec->_reduction_features.template get<simple_label_reduction_features>();
+  simple_red_features.initial = base;
+  ec->weight = weight;
+}
 
 inline void delete_feature(feature* ftr) { return_features(ftr); }
 
@@ -131,59 +140,58 @@ void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ft
 template <bool is_learn, typename T, typename E>
 void predict_or_learn(feature_data& data, T& base, E& ec)
 {
-  if (data.all->options->was_supplied("del_ftr"))
+  // if (data.all->options->was_supplied("del_ftr"))
+  // {
+  example* copy_ec = alloc_examples(1);
+  copy_example_data_with_label(copy_ec, &ec);
+  data.non_manip = copy_ec;
+  manipulate_features(data, ec, delete_feature);
+  if (is_learn)
   {
-    example* copy_ec = alloc_examples(1);
-    copy_example_data_with_label(copy_ec, &ec);
-    data.non_manip = copy_ec;
-    manipulate_features(data, ec, delete_feature);
-    if (is_learn)
-    {
-      if (data.manip_flag) { base.learn(ec); }
-      else
-      {
-        base.learn(*data.non_manip);
-        ec.pred.scalar = std::move(data.non_manip->pred.scalar);
-      }
-
-      // TODO: test_case for hashing and deleting
-      // TODO: Design a class structure
-    }
+    if (data.manip_flag) { base.learn(ec); }
     else
     {
-      if (data.manip_flag) { base.predict(ec); }
-      else
-      {
-        base.predict(*data.non_manip);
-        ec.pred.scalar = std::move(data.non_manip->pred.scalar);
-      }
+      base.learn(*data.non_manip);
+      ec.pred.scalar = std::move(data.non_manip->pred.scalar);
     }
+
+    // TODO: test_case for hashing and deleting
+    // TODO: Design a class structure
   }
   else
   {
-    if (is_learn)
-      base.learn(ec);
+    if (data.manip_flag) { base.predict(ec); }
     else
-      base.predict(ec);
+    {
+      base.predict(*data.non_manip);
+      ec.pred.scalar = std::move(data.non_manip->pred.scalar);
+    }
   }
+  // }
+  // else
+  // {
+  //   if (is_learn)
+  //     base.learn(ec);
+  //   else
+  //     base.predict(ec);
+  // }
 }
 
 VW::LEARNER::base_learner* delete_ftr_setup(VW::config::options_i& options, vw& all)
 {
   auto data = scoped_calloc_or_throw<feature_data>();
-
+  bool manip_ftr = false;
   // TODO: Option to specify the namespace from which to delete
   option_group_definition new_options("Delete features");
+  new_options.add(make_option("ftr_manip", manip_ftr).necessary().help("Manipualte the specified."));
   new_options.add(make_option("del_ftr", data->ftr_names).help("Specify features to delete."));
   new_options.add(
       make_option("del_ftr_nms", data->namespace_name).help("Specify namespace for the feature to be modified."));
   new_options.add(make_option("mod_val", data->value).help("Specify the modified value for the feature."));
   new_options.add(make_option("rename_ftr", data->mod_ftr_name).help("Rename the feature."));
-
-  options.add_and_parse(new_options);
+  if (!options.add_parse_and_check_necessary(new_options)) return nullptr;
+  // options.add_and_parse(new_options);
   data->all = &all;
-
-  // if (!options.add_parse_and_check_necessary(new_options)) return nullptr;
 
   if (all.options->was_supplied("del_ftr"))
     VW::io::logger::log_warn("Setup options for deleting feature name: {}", data->ftr_names);
