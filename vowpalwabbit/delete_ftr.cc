@@ -34,6 +34,9 @@ struct feature_data
   size_t ftr_hash;
   double value = 1;
   namespace_index index = ' ';
+  size_t mod_hash;
+  size_t rename_flag = 0;
+  std::string mod_ftr_name;
 };
 
 inline void delete_feature(feature* ftr) { return_features(ftr); }
@@ -49,19 +52,24 @@ inline void delete_feature(example& ec, namespace_index index, size_t feature_ha
   }
 }
 
-inline void modify_feature(
-    example& ec, namespace_index index, size_t feature_hash, int& idx_ret, float value = 1, int mod_flag = 0)
+inline void modify_feature(example& ec, feature_data data, int& idx_ret)
 {
-  // VW::io::logger::log_warn("Features: {}, {}, {}", feature_hash, fs.indicies[0], fs.values[0]);
-  for (unsigned int idx = 0; idx < ec.feature_space[index].indicies.size(); idx++)
+  // VW::io::logger::log_warn("Features: {}, {}, {}", data.ftr_hash, fs.indicies[0], fs.values[0]);
+  for (unsigned int idx = 0; idx < ec.feature_space[data.index].indicies.size(); idx++)
   {
-    if (ec.feature_space[index].indicies[idx] == feature_hash)
+    if (ec.feature_space[data.index].indicies[idx] == data.ftr_hash)
     {
-      if (ec.feature_space[index].values[idx] != value && mod_flag)
+      if (data.rename_flag)
       {
-        ec.feature_space[index].values[idx] = value;
+        ec.feature_space[data.index].indicies[idx] = data.mod_hash;
         VW::io::logger::log_warn(
-            "Value modified for feature_hash {} to {}", feature_hash, ec.feature_space[index].values[idx]);
+            "Feature renamed to {} with hash {}", data.mod_ftr_name, ec.feature_space[data.index].indicies[idx]);
+      }
+      if (ec.feature_space[data.index].values[idx] != data.value && data.mod_flag)
+      {
+        ec.feature_space[data.index].values[idx] = data.value;
+        VW::io::logger::log_warn("Value modified for data.ftr_hash {} to {}",
+            ec.feature_space[data.index].indicies[idx], ec.feature_space[data.index].values[idx]);
       }
       idx_ret = idx;
     }
@@ -92,10 +100,15 @@ void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ft
 
   data.namespace_hash = hash_space(*(data.all), data.namespace_name);
   data.ftr_hash = hash_feature(*(data.all), data.ftr_names, data.namespace_hash);
-  // TODO: Find the namespace index for the feature. Maybe use the option of namespace
+  data.mod_hash = hash_feature(*(data.all), data.mod_ftr_name, data.namespace_hash);
+
   uint64_t multiplier = static_cast<uint64_t>(data.all->wpp) << data.all->weights.stride_shift();
-  modify_feature(ec, data.index, data.ftr_hash * multiplier, idx, data.value, data.mod_flag);
-  if (data.mod_flag) check_modify_feature(ec, data.index, data.ftr_hash * multiplier, idx);
+  data.ftr_hash *= multiplier;
+  data.mod_hash *= multiplier;
+
+  modify_feature(ec, data, idx);
+  // data.index, data.ftr_hash * multiplier, idx, || data.value, data.mod_flag, data.rename_flag, data.mod_hash);
+  if (data.mod_flag) check_modify_feature(ec, data.index, data.ftr_hash, idx);
 
   feature* ftr = nullptr;        // Modify after test
   if (*fn) data.manip_flag = 1;  // Modify after test
@@ -165,6 +178,7 @@ VW::LEARNER::base_learner* delete_ftr_setup(VW::config::options_i& options, vw& 
   new_options.add(
       make_option("del_ftr_nms", data->namespace_name).help("Specify namespace for the feature to be modified."));
   new_options.add(make_option("mod_val", data->value).help("Specify the modified value for the feature."));
+  new_options.add(make_option("rename_ftr", data->mod_ftr_name).help("Rename the feature."));
 
   options.add_and_parse(new_options);
   data->all = &all;
@@ -174,6 +188,7 @@ VW::LEARNER::base_learner* delete_ftr_setup(VW::config::options_i& options, vw& 
   if (all.options->was_supplied("del_ftr"))
     VW::io::logger::log_warn("Setup options for deleting feature name: {}", data->ftr_names);
   if (all.options->was_supplied("mod_val")) data->mod_flag = 1;
+  if (all.options->was_supplied("rename_ftr")) data->rename_flag = 1;
 
   base_learner* base_learn = setup_base(options, all);
 
