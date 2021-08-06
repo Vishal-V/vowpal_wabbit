@@ -183,18 +183,12 @@ void predict_or_learn(feature_data& data, T& base, E& ec)
   // }
 }
 
-void finish_example(vw& all, feature_data& data, example& ec)
+void finish_example(vw& all, feature_data& data, example&) { output_and_account_example(all, *data.modify); }
+
+VW::LEARNER::base_learner* delete_ftr_setup(setup_base_i& stack_builder)
 {
-  // data.adf_data.ecs[0]->pred.a_s = std::move(ec.pred.a_s);
-
-  // c.adf_learner->print_example(all, c.adf_data.ecs);
-
-  // VW::finish_example(all, ec);
-  output_and_account_example(all, *data.modify);
-}
-
-VW::LEARNER::base_learner* delete_ftr_setup(VW::config::options_i& options, vw& all)
-{
+  options_i& options = *stack_builder.get_options();
+  vw& all = *stack_builder.get_all_pointer();
   auto data = scoped_calloc_or_throw<feature_data>();
   bool manip_ftr = false;
   // TODO: Option to specify the namespace from which to delete
@@ -214,7 +208,7 @@ VW::LEARNER::base_learner* delete_ftr_setup(VW::config::options_i& options, vw& 
   if (all.options->was_supplied("mod_val")) data->mod_flag = 1;
   if (all.options->was_supplied("rename_ftr")) data->rename_flag = 1;
 
-  base_learner* base_learn = setup_base(options, all);
+  base_learner* base_learn = stack_builder.setup_base_learner();
 
   // TODO: Fix multiline after test
   // if (base_learn->is_multiline)

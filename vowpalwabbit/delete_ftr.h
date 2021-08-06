@@ -10,6 +10,6 @@ namespace VW
 {
 namespace DELETE_FTR
 {
-VW::LEARNER::base_learner* delete_ftr_setup(VW::config::options_i& options, vw& all);
+VW::LEARNER::base_learner* delete_ftr_setup(setup_base_i& stack_builder);
 }  // namespace DELETE_FTR
 }  // namespace VW
