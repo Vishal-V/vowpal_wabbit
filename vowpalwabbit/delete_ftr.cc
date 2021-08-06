@@ -78,29 +78,26 @@ void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ft
   // data.num_ftr = ftr_num;
   // feature* ftr = get_features(*(data.all), &ec, (&data)->num_ftr);
 
-  if (data.all->options->was_supplied("del_ftr"))
-  {
-    std::vector<namespace_index> nms;
-    int idx = 0;
-    for (namespace_index c : ec.indices) nms.push_back(c);
-    data.namespace_hash = hash_space(*(data.all), data.namespace_name);
-    data.ftr_hash = hash_feature(*(data.all), data.ftr_names, data.namespace_hash);
-    // TODO: Find the namespace index for the feature. Maybe use the option of namespace
-    uint64_t multiplier = static_cast<uint64_t>(data.all->wpp) << data.all->weights.stride_shift();
-    modify_feature(ec, (char)nms[0], data.ftr_hash * multiplier, idx, data.value);
-    check_modify_feature(ec, (char)nms[0], data.ftr_hash * multiplier, idx);
+  std::vector<namespace_index> nms;
+  int idx = 0;
+  for (namespace_index c : ec.indices) nms.push_back(c);
+  data.namespace_hash = hash_space(*(data.all), data.namespace_name);
+  data.ftr_hash = hash_feature(*(data.all), data.ftr_names, data.namespace_hash);
+  // TODO: Find the namespace index for the feature. Maybe use the option of namespace
+  uint64_t multiplier = static_cast<uint64_t>(data.all->wpp) << data.all->weights.stride_shift();
+  modify_feature(ec, (char)nms[0], data.ftr_hash * multiplier, idx, data.value);
+  check_modify_feature(ec, (char)nms[0], data.ftr_hash * multiplier, idx);
 
-    feature* ftr = nullptr;        // Modify after test
-    if (*fn) data.manip_flag = 1;  // Modify after test
-    if (data.manip_flag)
-    {
-      // delete_feature((ftr + 1));
-      return;  // data.manip_ec;
-    }
-    else
-    {
-      (*fn)(ftr);  // (*fn)(ftr, hash_val);
-    }
+  feature* ftr = nullptr;        // Modify after test
+  if (*fn) data.manip_flag = 1;  // Modify after test
+  if (data.manip_flag)
+  {
+    // delete_feature((ftr + 1));
+    return;  // data.manip_ec;
+  }
+  else
+  {
+    (*fn)(ftr);  // (*fn)(ftr, hash_val);
   }
   // TODO: match feature with hash and get the feature pointer for example
   // size_t get_feature_hash(std::string ftr_name) in example.cc
@@ -112,34 +109,43 @@ void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ft
 template <bool is_learn, typename T, typename E>
 void predict_or_learn(feature_data& data, T& base, E& ec)
 {
-  example* copy_ec = alloc_examples(1);
-  copy_example_data_with_label(copy_ec, &ec);
-  data.non_manip = copy_ec;
-  manipulate_features(data, ec, delete_feature);
-
-  if (is_learn)
+  if (data.all->options->was_supplied("del_ftr"))
   {
-    if (data.manip_flag) { base.learn(ec); }
+    example* copy_ec = alloc_examples(1);
+    copy_example_data_with_label(copy_ec, &ec);
+    data.non_manip = copy_ec;
+    manipulate_features(data, ec, delete_feature);
+    if (is_learn)
+    {
+      if (data.manip_flag) { base.learn(ec); }
+      else
+      {
+        base.learn(*data.non_manip);
+        ec.pred.scalar = std::move(data.non_manip->pred.scalar);
+      }
+
+      // TODO: test_case for hashing and deleting
+      // TODO: Design a class structure
+      // TODO: How to call hash from the reduction.
+      // TODO: word_hash = (_p->hasher(feature_name.begin(), feature_name.length(), _channel_hash) & _parse_mask);
+      // TODO: Which hash needs to be deleted. Go to the example and find that hash.
+    }
     else
     {
-      base.learn(*data.non_manip);
-      ec.pred.scalar = std::move(data.non_manip->pred.scalar);
+      if (data.manip_flag) { base.predict(ec); }
+      else
+      {
+        base.predict(*data.non_manip);
+        ec.pred.scalar = std::move(data.non_manip->pred.scalar);
+      }
     }
-
-    // TODO: test_case for hashing and deleting
-    // TODO: Design a class structure
-    // TODO: How to call hash from the reduction.
-    // TODO: word_hash = (_p->hasher(feature_name.begin(), feature_name.length(), _channel_hash) & _parse_mask);
-    // TODO: Which hash needs to be deleted. Go to the example and find that hash.
   }
   else
   {
-    if (data.manip_flag) { base.predict(ec); }
+    if (is_learn)
+      base.learn(ec);
     else
-    {
-      base.predict(*data.non_manip);
-      ec.pred.scalar = std::move(data.non_manip->pred.scalar);
-    }
+      base.predict(ec);
   }
 }
 
