@@ -76,6 +76,21 @@ inline void modify_feature(example& ec, feature_data data, int& idx_ret)
   }
 }
 
+// void del_example_namespace(example& ec, namespace_index ns, features& fs)
+// {
+//   // print_update is called after this del_example_namespace,
+//   // so we need to keep the ec.num_features correct,
+//   // so shared features are included in the reported number of "current features"
+//   // ec.num_features -= numf;
+//   features& del_target = ec.feature_space[static_cast<size_t>(ns)];
+//   assert(del_target.size() >= fs.size());
+//   assert(ec.indices.size() > 0);
+//   if (ec.indices.back() == ns && ec.feature_space[static_cast<size_t>(ns)].size() == fs.size())
+//   ec.indices.pop_back(); ec.reset_total_sum_feat_sq(); ec.num_features -= fs.size();
+//   del_target.truncate_to(del_target.size() - fs.size());
+//   del_target.sum_feat_sq -= fs.sum_feat_sq;
+// }
+
 inline void check_modify_feature(example& ec, namespace_index index, size_t feature_hash, int idx)
 {
   if (ec.feature_space[index].indicies[idx] == feature_hash)
@@ -168,6 +183,16 @@ void predict_or_learn(feature_data& data, T& base, E& ec)
   // }
 }
 
+void finish_example(vw& all, feature_data& data, example& ec)
+{
+  // data.adf_data.ecs[0]->pred.a_s = std::move(ec.pred.a_s);
+
+  // c.adf_learner->print_example(all, c.adf_data.ecs);
+
+  // VW::finish_example(all, ec);
+  output_and_account_example(all, *data.modify);
+}
+
 VW::LEARNER::base_learner* delete_ftr_setup(VW::config::options_i& options, vw& all)
 {
   auto data = scoped_calloc_or_throw<feature_data>();
@@ -205,7 +230,7 @@ VW::LEARNER::base_learner* delete_ftr_setup(VW::config::options_i& options, vw& 
   learner<feature_data, example>* ret = &init_learner(data, as_singleline(base_learn),
       predict_or_learn<true, single_learner, example>, predict_or_learn<false, single_learner, example>, 1,
       base_learn->pred_type, all.get_setupfn_name(delete_ftr_setup), base_learn->learn_returns_prediction);
-
+  ret->set_finish_example(finish_example);
   return make_base(*ret);
   // }
 }
