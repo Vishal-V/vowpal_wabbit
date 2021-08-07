@@ -25,18 +25,22 @@ struct feature_data
   vw* all;
   std::string namespace_name = " ";
   std::string ftr_names;
-  // example buffer_ec;
+  std::string mod_ftr_name;
   example* modify;
   size_t num_ftr = 0;
-  size_t manip_flag = 0;
-  size_t mod_flag = 0;
   size_t namespace_hash;
   size_t ftr_hash;
   double value = 1;
   namespace_index index = ' ';
   size_t mod_hash;
-  size_t rename_flag = 0;
-  std::string mod_ftr_name;
+  double log_base = 2;
+  double bin_thresh = 0;
+  size_t manip_flag = false;
+  size_t mod_flag = false;
+  size_t rename_flag = false;
+  size_t delete_flag = false;    // TODO
+  size_t binarize_flag = false;  // TODO
+  size_t log_flag = false;       // TODO
 };
 
 inline void delete_feature(feature* ftr) { return_features(ftr); }
@@ -59,16 +63,49 @@ inline void modify_feature(example& ec, feature_data data, int& idx_ret)
   {
     if (ec.feature_space[data.index].indicies[idx] == data.ftr_hash)
     {
+      if (data.delete_flag)
+      {
+        // // print_update is called after this del_example_namespace,
+        // // so we need to keep the ec.num_features correct,
+        // // so shared features are included in the reported number of "current features"
+        // // ec.num_features -= numf;
+        // features& del_target = ec.feature_space[static_cast<size_t>(ns)];
+        // assert(del_target.size() >= fs.size());
+        // assert(ec.indices.size() > 0);
+        // if (ec.indices.back() == ns && ec.feature_space[static_cast<size_t>(ns)].size() == fs.size())
+        //   ec.indices.pop_back();
+        // ec.reset_total_sum_feat_sq();
+        // ec.num_features -= fs.size();
+        // del_target.truncate_to(del_target.size() - fs.size());
+        // del_target.sum_feat_sq -= fs.sum_feat_sq;
+        return;
+      }
       if (data.rename_flag)
       {
         ec.feature_space[data.index].indicies[idx] = data.mod_hash;
         VW::io::logger::log_warn(
             "Feature renamed to {} with hash {}", data.mod_ftr_name, ec.feature_space[data.index].indicies[idx]);
       }
-      if (ec.feature_space[data.index].values[idx] != data.value && data.mod_flag)
+      if (data.mod_flag)
       {
         ec.feature_space[data.index].values[idx] = data.value;
         VW::io::logger::log_warn("Value modified for data.ftr_hash {} to {}",
+            ec.feature_space[data.index].indicies[idx], ec.feature_space[data.index].values[idx]);
+      }
+      else if (data.binarize_flag)
+      {
+        ec.feature_space[data.index].values[idx] = (ec.feature_space[data.index].values[idx] < data.bin_thresh) ? 0 : 1;
+        VW::io::logger::log_warn("Value binarized with thresold {} for {} to {}", data.bin_thresh,
+            ec.feature_space[data.index].indicies[idx], ec.feature_space[data.index].values[idx]);
+      }
+      else if (data.log_flag)
+      {
+        if (data.log_base == 1) { ec.feature_space[data.index].values[idx] = 0; }
+        else
+          ec.feature_space[data.index].values[idx] = (ec.feature_space[data.index].values[idx] <= 0)
+              ? 0
+              : log(ec.feature_space[data.index].values[idx]) / log(data.log_base);
+        VW::io::logger::log_warn("Value manipulated to logarithm scale with base {} for {} to {}", data.log_base,
             ec.feature_space[data.index].indicies[idx], ec.feature_space[data.index].values[idx]);
       }
       idx_ret = idx;
@@ -123,10 +160,10 @@ void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ft
 
   modify_feature(ec, data, idx);
   // data.index, data.ftr_hash * multiplier, idx, || data.value, data.mod_flag, data.rename_flag, data.mod_hash);
-  if (data.mod_flag) check_modify_feature(ec, data.index, data.ftr_hash, idx);
+  if (data.mod_flag || data.binarize_flag || data.log_flag) check_modify_feature(ec, data.index, data.ftr_hash, idx);
 
-  feature* ftr = nullptr;        // Modify after test
-  if (*fn) data.manip_flag = 1;  // Modify after test
+  feature* ftr = nullptr;           // Modify after test
+  if (*fn) data.manip_flag = true;  // Modify after test
   if (data.manip_flag)
   {
     // delete_feature((ftr + 1));
@@ -140,14 +177,13 @@ void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ft
   // size_t get_feature_hash(std::string ftr_name) in example.cc
   // int check_feature_hash_exists(size_t hash) in example.cc
   // feature* get_feature_with_hash(size_t hash) in example.cc
-  // TODO: Hash and add the feature to the example after manipulation
 }
 
 template <bool is_learn, typename T, typename E>
 void predict_or_learn(feature_data& data, T& base, E& ec)
 {
-  // if (data.all->options->was_supplied("del_ftr"))
-  // {
+  // TODO: test_case for hashing and deleting
+  // TODO: Design a class structure
   example* copy_ec = alloc_examples(1);
   copy_example_data_with_label(copy_ec, &ec);
   data.modify = copy_ec;
@@ -160,9 +196,6 @@ void predict_or_learn(feature_data& data, T& base, E& ec)
       base.learn(*data.modify);
       ec.pred.scalar = std::move(data.modify->pred.scalar);
     }
-
-    // TODO: test_case for hashing and deleting
-    // TODO: Design a class structure
   }
   else
   {
@@ -173,14 +206,6 @@ void predict_or_learn(feature_data& data, T& base, E& ec)
       ec.pred.scalar = std::move(data.modify->pred.scalar);
     }
   }
-  // }
-  // else
-  // {
-  //   if (is_learn)
-  //     base.learn(ec);
-  //   else
-  //     base.predict(ec);
-  // }
 }
 
 void finish_example(vw& all, feature_data& data, example&) { output_and_account_example(all, *data.modify); }
@@ -191,22 +216,35 @@ VW::LEARNER::base_learner* delete_ftr_setup(setup_base_i& stack_builder)
   vw& all = *stack_builder.get_all_pointer();
   auto data = scoped_calloc_or_throw<feature_data>();
   bool manip_ftr = false;
-  // TODO: Option to specify the namespace from which to delete
-  option_group_definition new_options("Delete features");
-  new_options.add(make_option("ftr_manip", manip_ftr).necessary().help("Manipualte the specified."));
-  new_options.add(make_option("del_ftr", data->ftr_names).help("Specify features to delete."));
+
+  option_group_definition new_options("Manipulate features");
+  new_options.add(make_option("ftr_manip", manip_ftr).necessary().help("Manipulate the specified feature."));
+  new_options.add(make_option("mod_ftr", data->ftr_names).help("Specify feature to be modified."));
   new_options.add(
-      make_option("del_ftr_nms", data->namespace_name).help("Specify namespace for the feature to be modified."));
+      make_option("mod_ftr_nms", data->namespace_name).help("Specify namespace for the feature to be modified."));
   new_options.add(make_option("mod_val", data->value).help("Specify the modified value for the feature."));
-  new_options.add(make_option("rename_ftr", data->mod_ftr_name).help("Rename the feature."));
+  new_options.add(make_option("rename_ftr", data->mod_ftr_name).help("Specify the new name for the feature."));
+
+  new_options.add(make_option("del_ftr", data->delete_flag)
+                      .help("Option to delete the feature. No other manipulation will be applied"));
+  new_options.add(
+      make_option("bin_thresh", data->bin_thresh).help("Specify the threshold to binarize the feature value."));
+  new_options.add(make_option("log_base", data->log_base).help("Specify the log_base for the feature."));
   if (!options.add_parse_and_check_necessary(new_options)) return nullptr;
-  // options.add_and_parse(new_options);
+
   data->all = &all;
 
-  if (all.options->was_supplied("del_ftr"))
-    VW::io::logger::log_warn("Setup options for deleting feature name: {}", data->ftr_names);
-  if (all.options->was_supplied("mod_val")) data->mod_flag = 1;
-  if (all.options->was_supplied("rename_ftr")) data->rename_flag = 1;
+  if (all.options->was_supplied("mod_ftr"))
+    VW::io::logger::log_warn("Setup options for modifying feature : {}", data->ftr_names);
+  if (all.options->was_supplied("rename_ftr")) data->rename_flag = true;
+  if (all.options->was_supplied("mod_val"))
+    data->mod_flag = true;
+  else if (all.options->was_supplied("del_ftr"))
+    data->delete_flag = true;
+  else if (all.options->was_supplied("bin_thresh"))
+    data->binarize_flag = true;
+  else if (all.options->was_supplied("log_base"))
+    data->log_flag = true;
 
   base_learner* base_learn = stack_builder.setup_base_learner();
 
