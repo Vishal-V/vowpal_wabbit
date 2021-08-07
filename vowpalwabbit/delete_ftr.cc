@@ -60,48 +60,68 @@ inline void modify_feature(example& ec, feature_data data, int& idx_ret)
 {
   for (unsigned int idx = 0; idx < ec.feature_space[data.index].indicies.size(); idx++)
   {
-    if (ec.feature_space[data.index].indicies[idx] == data.ftr_hash)
+    if (ec.feature_space[static_cast<size_t>(data.index)].indicies[idx] == data.ftr_hash)
     {
       if (data.delete_flag)
       {
-        // features& del_target = ec.feature_space[static_cast<size_t>(ns)];
-        // assert(del_target.size() >= fs.size());
-        // assert(ec.indices.size() > 0);
-        // if (ec.indices.back() == ns && ec.feature_space[static_cast<size_t>(ns)].size() == fs.size())
-        //   ec.indices.pop_back();
-        // ec.reset_total_sum_feat_sq();
-        // ec.num_features -= fs.size();
+        if (ec.indices.size() == 0) return;
+        // features& del_target = ec.feature_space[static_cast<size_t>(data.index)];
+        if (ec.indices.back() == data.index && ec.feature_space[static_cast<size_t>(data.index)].size() == 1)
+        {
+          assert(ec.feature_space[static_cast<size_t>(data.index)].indicies[0] == data.ftr_hash);
+          VW::io::logger::log_warn("Deleting Feature!");
+          ec.indices.pop_back();
+        }
+        else
+        {
+          // namespace_index* idx_nms = ec.indices.end();
+          // idx_nms--;
+          // for (; idx_nms >= ec.indices.start(); idx_nms--) }
+          // ec.reset_total_sum_feat_sq();
+        }
+
+        ec.num_features--;
         // del_target.truncate_to(del_target.size() - fs.size());
         // del_target.sum_feat_sq -= fs.sum_feat_sq;
         return;
       }
+
       if (data.rename_flag)
       {
-        ec.feature_space[data.index].indicies[idx] = data.mod_hash;
-        VW::io::logger::log_warn(
-            "Feature renamed to {} with hash {}", data.mod_ftr_name, ec.feature_space[data.index].indicies[idx]);
+        ec.feature_space[static_cast<size_t>(data.index)].indicies[idx] = data.mod_hash;
+        VW::io::logger::log_warn("Feature renamed to {} with hash {}", data.mod_ftr_name,
+            ec.feature_space[static_cast<size_t>(data.index)].indicies[idx]);
       }
       if (data.mod_flag)
       {
-        ec.feature_space[data.index].values[idx] = data.value;
+        // size_t val = ec.feature_space[static_cast<size_t>(data.index)].values[idx];
+        // val *= val;
+        ec.feature_space[static_cast<size_t>(data.index)].values[idx] = data.value;
+        // ec.feature_space[static_cast<size_t>(data.index)].sum_feat_sq -= val;
+        // ec.feature_space[static_cast<size_t>(data.index)].sum_feat_sq += data.value * data.value;
         VW::io::logger::log_warn("Value modified for data.ftr_hash {} to {}",
-            ec.feature_space[data.index].indicies[idx], ec.feature_space[data.index].values[idx]);
+            ec.feature_space[static_cast<size_t>(data.index)].indicies[idx],
+            ec.feature_space[static_cast<size_t>(data.index)].values[idx]);
       }
       else if (data.binarize_flag)
       {
-        ec.feature_space[data.index].values[idx] = (ec.feature_space[data.index].values[idx] < data.bin_thresh) ? 0 : 1;
+        ec.feature_space[static_cast<size_t>(data.index)].values[idx] =
+            (ec.feature_space[static_cast<size_t>(data.index)].values[idx] < data.bin_thresh) ? 0 : 1;
         VW::io::logger::log_warn("Value binarized with thresold {} for {} to {}", data.bin_thresh,
-            ec.feature_space[data.index].indicies[idx], ec.feature_space[data.index].values[idx]);
+            ec.feature_space[static_cast<size_t>(data.index)].indicies[idx],
+            ec.feature_space[static_cast<size_t>(data.index)].values[idx]);
       }
       else if (data.log_flag)
       {
-        if (data.log_base == 1) { ec.feature_space[data.index].values[idx] = 0; }
+        if (data.log_base == 1) { ec.feature_space[static_cast<size_t>(data.index)].values[idx] = 0; }
         else
-          ec.feature_space[data.index].values[idx] = (ec.feature_space[data.index].values[idx] <= 0)
+          ec.feature_space[static_cast<size_t>(data.index)].values[idx] =
+              (ec.feature_space[static_cast<size_t>(data.index)].values[idx] <= 0)
               ? 0
-              : log(ec.feature_space[data.index].values[idx]) / log(data.log_base);
+              : log(ec.feature_space[static_cast<size_t>(data.index)].values[idx]) / log(data.log_base);
         VW::io::logger::log_warn("Value manipulated to logarithm scale with base {} for {} to {}", data.log_base,
-            ec.feature_space[data.index].indicies[idx], ec.feature_space[data.index].values[idx]);
+            ec.feature_space[static_cast<size_t>(data.index)].indicies[idx],
+            ec.feature_space[static_cast<size_t>(data.index)].values[idx]);
       }
       idx_ret = idx;
     }
@@ -115,7 +135,7 @@ inline void check_modify_feature(example& ec, namespace_index index, size_t feat
   if (ec.feature_space[index].indicies[idx] == feature_hash)
   {
     VW::io::logger::log_warn(
-        "Check: modification of feature_hash {} to {}", feature_hash, ec.feature_space[index].values[idx]);
+        "Check: modification of feature_hash {} and {}", feature_hash, ec.feature_space[index].values[idx]);
   }
 }
 
@@ -142,7 +162,8 @@ void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ft
 
   if (*fn) data.manip_flag = true;  // Modify after test
   modify_feature(ec, data, idx);
-  if (data.mod_flag || data.binarize_flag || data.log_flag) check_modify_feature(ec, data.index, data.ftr_hash, idx);
+  if (data.mod_flag || data.binarize_flag || data.log_flag || data.rename_flag)
+    check_modify_feature(ec, data.index, data.mod_hash, idx);
 
   // TODO: match feature with hash and get the feature pointer for example
   // size_t get_feature_hash(std::string ftr_name) in example.cc
