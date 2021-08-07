@@ -38,9 +38,9 @@ struct feature_data
   size_t manip_flag = false;
   size_t mod_flag = false;
   size_t rename_flag = false;
-  size_t delete_flag = false;    // TODO
-  size_t binarize_flag = false;  // TODO
-  size_t log_flag = false;       // TODO
+  size_t delete_flag = false;  // TODO
+  size_t binarize_flag = false;
+  size_t log_flag = false;
 };
 
 inline void delete_feature(feature* ftr) { return_features(ftr); }
@@ -58,17 +58,12 @@ inline void delete_feature(example& ec, namespace_index index, size_t feature_ha
 
 inline void modify_feature(example& ec, feature_data data, int& idx_ret)
 {
-  // VW::io::logger::log_warn("Features: {}, {}, {}", data.ftr_hash, fs.indicies[0], fs.values[0]);
   for (unsigned int idx = 0; idx < ec.feature_space[data.index].indicies.size(); idx++)
   {
     if (ec.feature_space[data.index].indicies[idx] == data.ftr_hash)
     {
       if (data.delete_flag)
       {
-        // // print_update is called after this del_example_namespace,
-        // // so we need to keep the ec.num_features correct,
-        // // so shared features are included in the reported number of "current features"
-        // // ec.num_features -= numf;
         // features& del_target = ec.feature_space[static_cast<size_t>(ns)];
         // assert(del_target.size() >= fs.size());
         // assert(ec.indices.size() > 0);
@@ -113,20 +108,7 @@ inline void modify_feature(example& ec, feature_data data, int& idx_ret)
   }
 }
 
-// void del_example_namespace(example& ec, namespace_index ns, features& fs)
-// {
-//   // print_update is called after this del_example_namespace,
-//   // so we need to keep the ec.num_features correct,
-//   // so shared features are included in the reported number of "current features"
-//   // ec.num_features -= numf;
-//   features& del_target = ec.feature_space[static_cast<size_t>(ns)];
-//   assert(del_target.size() >= fs.size());
-//   assert(ec.indices.size() > 0);
-//   if (ec.indices.back() == ns && ec.feature_space[static_cast<size_t>(ns)].size() == fs.size())
-//   ec.indices.pop_back(); ec.reset_total_sum_feat_sq(); ec.num_features -= fs.size();
-//   del_target.truncate_to(del_target.size() - fs.size());
-//   del_target.sum_feat_sq -= fs.sum_feat_sq;
-// }
+// void del_example_namespace(example& ec, namespace_index ns, features& fs);
 
 inline void check_modify_feature(example& ec, namespace_index index, size_t feature_hash, int idx)
 {
@@ -158,21 +140,10 @@ void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ft
   data.ftr_hash *= multiplier;
   data.mod_hash *= multiplier;
 
+  if (*fn) data.manip_flag = true;  // Modify after test
   modify_feature(ec, data, idx);
-  // data.index, data.ftr_hash * multiplier, idx, || data.value, data.mod_flag, data.rename_flag, data.mod_hash);
   if (data.mod_flag || data.binarize_flag || data.log_flag) check_modify_feature(ec, data.index, data.ftr_hash, idx);
 
-  feature* ftr = nullptr;           // Modify after test
-  if (*fn) data.manip_flag = true;  // Modify after test
-  if (data.manip_flag)
-  {
-    // delete_feature((ftr + 1));
-    return;  // data.manip_ec;
-  }
-  else
-  {
-    (*fn)(ftr);  // (*fn)(ftr, hash_val);
-  }
   // TODO: match feature with hash and get the feature pointer for example
   // size_t get_feature_hash(std::string ftr_name) in example.cc
   // int check_feature_hash_exists(size_t hash) in example.cc
@@ -237,10 +208,10 @@ VW::LEARNER::base_learner* delete_ftr_setup(setup_base_i& stack_builder)
   if (all.options->was_supplied("mod_ftr"))
     VW::io::logger::log_warn("Setup options for modifying feature : {}", data->ftr_names);
   if (all.options->was_supplied("rename_ftr")) data->rename_flag = true;
-  if (all.options->was_supplied("mod_val"))
-    data->mod_flag = true;
-  else if (all.options->was_supplied("del_ftr"))
+  if (all.options->was_supplied("del_ftr"))
     data->delete_flag = true;
+  else if (all.options->was_supplied("mod_val"))
+    data->mod_flag = true;
   else if (all.options->was_supplied("bin_thresh"))
     data->binarize_flag = true;
   else if (all.options->was_supplied("log_base"))
