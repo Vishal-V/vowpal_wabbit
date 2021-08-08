@@ -1,0 +1,60 @@
+../build/vowpalwabbit/vw -i model.vw -d sample_data.txt -p predictions.txt --noconstant --progress 1 --mod_ftr p --mod_ftr_nms z --ftr_manip --del_ftr 1 --audit
+predictions = predictions.txt
+[warning] Setup options for modifying feature : p
+Num weight bits = 18
+learning rate = 0.5
+initial_t = 0
+power_t = 0.5
+using no cache
+Reading datafile = sample_data.txt
+num sources = 1
+Enabled reductions: gd, scorer-identity, ftr_manip
+average  since         example        example  current  current  current
+loss     last          counter         weight    label  predict features
+[warning] Deleting Namespace: 122
+0
+
+0.000000 0.000000            1            1.0   0.0000   0.0000        0
+[warning] Deleting Feature: 222152
+[warning] Deleting Feature: 222152
+[warning] Deleting Feature: 222152
+[warning] Deleting Namespace: 122
+0
+
+0.000000 0.000000            2            2.0   0.0000   0.0000        0
+[warning] Deleting Feature: 222152
+[warning] Deleting Feature: 222152
+[warning] Deleting Feature: 222152
+[warning] Deleting Feature: 222152
+[warning] Deleting Feature: 773288
+0
+        z^a:193322:2:0@0
+0.333333 1.000000            3            3.0   1.0000   0.0000        1
+[warning] Deleting Feature: 222152
+0.590093
+        z^a:193322:1:0.196698@16        z^a:193322:1:0.196698@16        z^a:193322:1:0.196698@16        z^b:222134:1:0@0        z^j:96771:1:0@0
+0.292006 0.168024            4            4.0   1.0000   0.5901        5
+0.241730
+        z^a:193322:1:0.24173@18.0163    d:70771:1:0@0
+0.348599 0.574973            5            5.0   1.0000   0.2417        2
+0.583372
+        d:70771:2:0.291686@2.29989      a:92594:1:0@0   b:163331:1:0@0  c:185951:1:0@0
+0.319429 0.173579            6            6.0   1.0000   0.5834        4
+0
+        bring:220043:1:0@0
+0.273797 0.000000            7            7.0   0.0000   0.0000        1
+0
+        econom:205528:1:0@0
+0.364572 1.000000            8            8.0   1.0000   0.0000        1
+0
+        market:57136:1:0@0
+0.324064 0.000000            9            9.0   0.0000   0.0000        1
+
+finished run
+number of examples = 9
+weighted example sum = 9.000000
+weighted label sum = 5.000000
+average loss = 0.324064
+best constant = 0.555556
+best constant's loss = 0.246914
+total feature number = 15

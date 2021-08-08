@@ -38,23 +38,10 @@ struct feature_data
   size_t manip_flag = false;
   size_t mod_flag = false;
   size_t rename_flag = false;
-  size_t delete_flag = false;  // TODO
+  size_t delete_flag = false;
   size_t binarize_flag = false;
   size_t log_flag = false;
 };
-
-inline void delete_feature(feature* ftr) { return_features(ftr); }
-
-inline void delete_feature(example& ec, namespace_index index, size_t feature_hash)
-{
-  if (ec.feature_space[index].indicies[0] == feature_hash)  // TODO
-  {
-    // ec.feature_space[index].indicies[0] = feature_hash;
-    // ec.feature_space[index].values[0] = value;
-    VW::io::logger::log_warn(
-        "Value modified for feature_hash {} to {}", feature_hash, ec.feature_space[index].values[0]);
-  }
-}
 
 template <class ForwardIt, class ForwardItFloat, class ForwardItPair, class T>
 ForwardIt remove_ftr(ForwardIt first_hash, ForwardIt last_hash, ForwardItFloat first_val, ForwardItFloat last_val,
@@ -71,11 +58,58 @@ ForwardIt remove_ftr(ForwardIt first_hash, ForwardIt last_hash, ForwardItFloat f
       {
         *first_hash++ = std::move(*i);
         *first_val++ = std::move(*j);
-        *first_audit++ = std::move(*k);
+        (*first_audit).first = std::move((*k).first);
+        (*first_audit).second = std::move((*k).second);
+        *first_audit++;  // = std::move(*k);
       }
     }
   }
   return first_hash;
+}
+
+inline void delete_feature(example& ec, feature_data data)
+{
+  if (ec.indices.size() == 0) return;
+
+  int len_ec = ec.feature_space[static_cast<size_t>(data.index)].indicies.size(), num_ftr_del = 0;
+  for (int i = 0; i < len_ec; i++)
+    if (ec.feature_space[static_cast<size_t>(data.index)].indicies[i] == data.ftr_hash) { num_ftr_del++; }
+  for (int i = 0; i < len_ec; i++)
+  {
+    if (ec.feature_space[static_cast<size_t>(data.index)].indicies[i] == data.ftr_hash)
+    {
+      remove_ftr(ec.feature_space[static_cast<size_t>(data.index)].indicies.begin(),
+          ec.feature_space[static_cast<size_t>(data.index)].indicies.end(),
+          ec.feature_space[static_cast<size_t>(data.index)].values.begin(),
+          ec.feature_space[static_cast<size_t>(data.index)].values.end(),
+          ec.feature_space[static_cast<size_t>(data.index)].space_names.begin(),
+          ec.feature_space[static_cast<size_t>(data.index)].space_names.end(), data.ftr_hash);
+    }
+  }
+  while (num_ftr_del)
+  {
+    if (ec.feature_space[static_cast<size_t>(data.index)].size() == 1)
+    {
+      assert(ec.feature_space[static_cast<size_t>(data.index)].indicies[0] == data.ftr_hash);
+      VW::io::logger::log_warn("Deleting Namespace: {}", ec.indices.back());
+      ec.indices.pop_back();
+      ec.num_features--;
+      num_ftr_del--;
+      break;
+    }
+    else
+    {
+      VW::io::logger::log_warn(
+          "Deleting Feature: {}", ec.feature_space[static_cast<size_t>(data.index)].indicies.back());
+      ec.feature_space[static_cast<size_t>(data.index)].indicies.pop_back();
+      ec.feature_space[static_cast<size_t>(data.index)].values.pop_back();
+      // ec.feature_space[static_cast<size_t>(data.index)].space_names.pop_back();
+      ec.num_features--;
+      num_ftr_del--;
+    }
+  }
+  // del_target.sum_feat_sq -= fs.sum_feat_sq;
+  return;
 }
 
 inline void modify_feature(example& ec, feature_data data, int& idx_ret)
@@ -120,20 +154,24 @@ inline void modify_feature(example& ec, feature_data data, int& idx_ret)
               VW::io::logger::log_warn("Deleting Namespace: {}", ec.indices.back());
               ec.indices.pop_back();
               ec.num_features--;
+              num_ftr_del--;
               break;
             }
-            VW::io::logger::log_warn(
-                "Deleting Feature: {}!", ec.feature_space[static_cast<size_t>(data.index)].indicies.back());
-            ec.feature_space[static_cast<size_t>(data.index)].indicies.pop_back();
-            ec.feature_space[static_cast<size_t>(data.index)].values.pop_back();
-            ec.num_features--;
-            num_ftr_del--;
+            else
+            {
+              VW::io::logger::log_warn(
+                  "Deleting Feature: {}!", ec.feature_space[static_cast<size_t>(data.index)].indicies.back());
+              ec.feature_space[static_cast<size_t>(data.index)].indicies.pop_back();
+              ec.feature_space[static_cast<size_t>(data.index)].values.pop_back();
+              ec.feature_space[static_cast<size_t>(data.index)].space_names.pop_back();
+              ec.num_features--;
+              num_ftr_del--;
+            }
           }
         }
         // del_target.sum_feat_sq -= fs.sum_feat_sq;
-        return;
+        break;
       }
-
       if (data.rename_flag)
       {
         ec.feature_space[static_cast<size_t>(data.index)].indicies[idx] = data.mod_hash;
@@ -185,7 +223,8 @@ inline void check_modify_feature(example& ec, namespace_index index, size_t feat
   }
 }
 
-void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ftr) = nullptr)
+void manipulate_features(
+    feature_data& data, example& ec, void (*fn)(example& ec, feature_data data, int& idx_ret) = nullptr)
 {
   int idx = 0;
   for (namespace_index c : ec.indices)
@@ -203,7 +242,11 @@ void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ft
   data.mod_hash *= multiplier;
 
   if (*fn) data.manip_flag = true;  // Modify after test
-  modify_feature(ec, data, idx);
+  if (data.delete_flag)
+    delete_feature(ec, data);
+  else
+    modify_feature(ec, data, idx);
+
   if (data.mod_flag || data.binarize_flag || data.log_flag || data.rename_flag)
     check_modify_feature(ec, data.index, data.mod_hash, idx);
 }
@@ -211,12 +254,11 @@ void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ft
 template <bool is_learn, typename T, typename E>
 void predict_or_learn(feature_data& data, T& base, E& ec)
 {
-  // TODO: test_case for hashing and deleting
   // TODO: Design a class structure
   example* copy_ec = alloc_examples(1);
   copy_example_data_with_label(copy_ec, &ec);
   data.modify = copy_ec;
-  manipulate_features(data, *data.modify, delete_feature);
+  manipulate_features(data, *data.modify, modify_feature);
   if (is_learn)
   {
     if (!data.manip_flag) { base.learn(ec); }
