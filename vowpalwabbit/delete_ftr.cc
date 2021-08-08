@@ -62,10 +62,11 @@ inline void modify_feature(example& ec, feature_data data, int& idx_ret)
   {
     if (ec.feature_space[static_cast<size_t>(data.index)].indicies[idx] == data.ftr_hash)
     {
+      // TODO: Fix the audit strings
+      // TODO: Delete multiple features in example
       if (data.delete_flag)
       {
         if (ec.indices.size() == 0) return;
-        // features& del_target = ec.feature_space[static_cast<size_t>(data.index)];
         if (ec.indices.back() == data.index && ec.feature_space[static_cast<size_t>(data.index)].size() == 1)
         {
           assert(ec.feature_space[static_cast<size_t>(data.index)].indicies[0] == data.ftr_hash);
@@ -74,10 +75,23 @@ inline void modify_feature(example& ec, feature_data data, int& idx_ret)
         }
         else
         {
-          // namespace_index* idx_nms = ec.indices.end();
-          // idx_nms--;
-          // for (; idx_nms >= ec.indices.start(); idx_nms--) }
-          // ec.reset_total_sum_feat_sq();
+          int len_ec = ec.feature_space[static_cast<size_t>(data.index)].size();
+          for (int i = 0; i < len_ec; i++)
+          {
+            if (ec.feature_space[static_cast<size_t>(data.index)].indicies[i] == data.ftr_hash)
+            {
+              for (int j = i; j < len_ec - 1; j++)
+              {
+                ec.feature_space[static_cast<size_t>(data.index)].indicies[j] =
+                    ec.feature_space[static_cast<size_t>(data.index)].indicies[j + 1];
+                ec.feature_space[static_cast<size_t>(data.index)].values[j] =
+                    ec.feature_space[static_cast<size_t>(data.index)].values[j + 1];
+              }
+              ec.feature_space[static_cast<size_t>(data.index)].indicies.pop_back();
+              ec.feature_space[static_cast<size_t>(data.index)].values.pop_back();
+              // break;
+            }
+          }
         }
 
         ec.num_features--;
