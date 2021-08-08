@@ -56,14 +56,34 @@ inline void delete_feature(example& ec, namespace_index index, size_t feature_ha
   }
 }
 
+template <class ForwardIt, class ForwardItFloat, class ForwardItPair, class T>
+ForwardIt remove_ftr(ForwardIt first_hash, ForwardIt last_hash, ForwardItFloat first_val, ForwardItFloat last_val,
+    ForwardItPair first_audit, ForwardItPair last_audit, const T& value)
+{
+  first_hash = std::find(first_hash, last_hash, value);
+  if (first_hash != last_hash)
+  {
+    auto j = first_val;
+    auto k = first_audit;
+    for (auto i = first_hash; ++i != last_hash && ++j != last_val && ++k != last_audit;)
+    {
+      if (!(*i == value))
+      {
+        *first_hash++ = std::move(*i);
+        *first_val++ = std::move(*j);
+        *first_audit++ = std::move(*k);
+      }
+    }
+  }
+  return first_hash;
+}
+
 inline void modify_feature(example& ec, feature_data data, int& idx_ret)
 {
   for (unsigned int idx = 0; idx < ec.feature_space[data.index].indicies.size(); idx++)
   {
     if (ec.feature_space[static_cast<size_t>(data.index)].indicies[idx] == data.ftr_hash)
     {
-      // TODO: Fix the audit strings
-      // TODO: Delete multiple features in example
       // TODO: Fix fs.sum_feat_sq
       if (data.delete_flag)
       {
@@ -71,7 +91,7 @@ inline void modify_feature(example& ec, feature_data data, int& idx_ret)
         if (ec.indices.back() == data.index && ec.feature_space[static_cast<size_t>(data.index)].size() == 1)
         {
           assert(ec.feature_space[static_cast<size_t>(data.index)].indicies[0] == data.ftr_hash);
-          VW::io::logger::log_warn("Deleting Feature!");
+          VW::io::logger::log_warn("Deleting Namespace!");
           ec.indices.pop_back();
           ec.num_features--;
         }
@@ -84,19 +104,12 @@ inline void modify_feature(example& ec, feature_data data, int& idx_ret)
           {
             if (ec.feature_space[static_cast<size_t>(data.index)].indicies[i] == data.ftr_hash)
             {
-              unsigned int last_idx = 0, curr_idx = 0;
-              while (curr_idx < ec.feature_space[static_cast<size_t>(data.index)].size())
-              {
-                if (ec.feature_space[static_cast<size_t>(data.index)].indicies[curr_idx] != data.ftr_hash)
-                {
-                  ec.feature_space[static_cast<size_t>(data.index)].values[last_idx] =
-                      ec.feature_space[static_cast<size_t>(data.index)].values[curr_idx];
-                  last_idx++;
-                }
-                curr_idx++;
-              }
-              std::remove(ec.feature_space[static_cast<size_t>(data.index)].indicies.begin(),
-                  ec.feature_space[static_cast<size_t>(data.index)].indicies.end(), data.ftr_hash);
+              remove_ftr(ec.feature_space[static_cast<size_t>(data.index)].indicies.begin(),
+                  ec.feature_space[static_cast<size_t>(data.index)].indicies.end(),
+                  ec.feature_space[static_cast<size_t>(data.index)].values.begin(),
+                  ec.feature_space[static_cast<size_t>(data.index)].values.end(),
+                  ec.feature_space[static_cast<size_t>(data.index)].space_names.begin(),
+                  ec.feature_space[static_cast<size_t>(data.index)].space_names.end(), data.ftr_hash);
             }
           }
           while (num_ftr_del)
@@ -104,7 +117,7 @@ inline void modify_feature(example& ec, feature_data data, int& idx_ret)
             if (ec.feature_space[static_cast<size_t>(data.index)].size() == 1)
             {
               assert(ec.feature_space[static_cast<size_t>(data.index)].indicies[0] == data.ftr_hash);
-              VW::io::logger::log_warn("Deleting Namespace: {}!", ec.indices.back());
+              VW::io::logger::log_warn("Deleting Namespace: {}", ec.indices.back());
               ec.indices.pop_back();
               ec.num_features--;
               break;
@@ -117,7 +130,6 @@ inline void modify_feature(example& ec, feature_data data, int& idx_ret)
             num_ftr_del--;
           }
         }
-        // del_target.truncate_to(del_target.size() - fs.size());
         // del_target.sum_feat_sq -= fs.sum_feat_sq;
         return;
       }
@@ -164,8 +176,6 @@ inline void modify_feature(example& ec, feature_data data, int& idx_ret)
   }
 }
 
-// void del_example_namespace(example& ec, namespace_index ns, features& fs);
-
 inline void check_modify_feature(example& ec, namespace_index index, size_t feature_hash, int idx)
 {
   if (ec.feature_space[index].indicies[idx] == feature_hash)
@@ -177,10 +187,6 @@ inline void check_modify_feature(example& ec, namespace_index index, size_t feat
 
 void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ftr) = nullptr)
 {
-  // size_t ftr_num = (&ec)->num_features;  // get_feature_number(&ec);
-  // data.num_ftr = ftr_num;
-  // feature* ftr = get_features(*(data.all), &ec, (&data)->num_ftr);
-
   int idx = 0;
   for (namespace_index c : ec.indices)
   {
@@ -200,11 +206,6 @@ void manipulate_features(feature_data& data, example& ec, void (*fn)(feature* ft
   modify_feature(ec, data, idx);
   if (data.mod_flag || data.binarize_flag || data.log_flag || data.rename_flag)
     check_modify_feature(ec, data.index, data.mod_hash, idx);
-
-  // TODO: match feature with hash and get the feature pointer for example
-  // size_t get_feature_hash(std::string ftr_name) in example.cc
-  // int check_feature_hash_exists(size_t hash) in example.cc
-  // feature* get_feature_with_hash(size_t hash) in example.cc
 }
 
 template <bool is_learn, typename T, typename E>
