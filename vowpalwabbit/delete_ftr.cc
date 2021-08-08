@@ -64,6 +64,7 @@ inline void modify_feature(example& ec, feature_data data, int& idx_ret)
     {
       // TODO: Fix the audit strings
       // TODO: Delete multiple features in example
+      // TODO: Fix fs.sum_feat_sq
       if (data.delete_flag)
       {
         if (ec.indices.size() == 0) return;
@@ -72,29 +73,50 @@ inline void modify_feature(example& ec, feature_data data, int& idx_ret)
           assert(ec.feature_space[static_cast<size_t>(data.index)].indicies[0] == data.ftr_hash);
           VW::io::logger::log_warn("Deleting Feature!");
           ec.indices.pop_back();
+          ec.num_features--;
         }
         else
         {
-          int len_ec = ec.feature_space[static_cast<size_t>(data.index)].size();
+          int len_ec = ec.feature_space[static_cast<size_t>(data.index)].size(), num_ftr_del = 0;
+          for (int i = 0; i < len_ec; i++)
+            if (ec.feature_space[static_cast<size_t>(data.index)].indicies[i] == data.ftr_hash) { num_ftr_del++; }
           for (int i = 0; i < len_ec; i++)
           {
             if (ec.feature_space[static_cast<size_t>(data.index)].indicies[i] == data.ftr_hash)
             {
-              for (int j = i; j < len_ec - 1; j++)
+              unsigned int last_idx = 0, curr_idx = 0;
+              while (curr_idx < ec.feature_space[static_cast<size_t>(data.index)].size())
               {
-                ec.feature_space[static_cast<size_t>(data.index)].indicies[j] =
-                    ec.feature_space[static_cast<size_t>(data.index)].indicies[j + 1];
-                ec.feature_space[static_cast<size_t>(data.index)].values[j] =
-                    ec.feature_space[static_cast<size_t>(data.index)].values[j + 1];
+                if (ec.feature_space[static_cast<size_t>(data.index)].indicies[curr_idx] != data.ftr_hash)
+                {
+                  ec.feature_space[static_cast<size_t>(data.index)].values[last_idx] =
+                      ec.feature_space[static_cast<size_t>(data.index)].values[curr_idx];
+                  last_idx++;
+                }
+                curr_idx++;
               }
-              ec.feature_space[static_cast<size_t>(data.index)].indicies.pop_back();
-              ec.feature_space[static_cast<size_t>(data.index)].values.pop_back();
-              // break;
+              std::remove(ec.feature_space[static_cast<size_t>(data.index)].indicies.begin(),
+                  ec.feature_space[static_cast<size_t>(data.index)].indicies.end(), data.ftr_hash);
             }
           }
+          while (num_ftr_del)
+          {
+            if (ec.feature_space[static_cast<size_t>(data.index)].size() == 1)
+            {
+              assert(ec.feature_space[static_cast<size_t>(data.index)].indicies[0] == data.ftr_hash);
+              VW::io::logger::log_warn("Deleting Namespace: {}!", ec.indices.back());
+              ec.indices.pop_back();
+              ec.num_features--;
+              break;
+            }
+            VW::io::logger::log_warn(
+                "Deleting Feature: {}!", ec.feature_space[static_cast<size_t>(data.index)].indicies.back());
+            ec.feature_space[static_cast<size_t>(data.index)].indicies.pop_back();
+            ec.feature_space[static_cast<size_t>(data.index)].values.pop_back();
+            ec.num_features--;
+            num_ftr_del--;
+          }
         }
-
-        ec.num_features--;
         // del_target.truncate_to(del_target.size() - fs.size());
         // del_target.sum_feat_sq -= fs.sum_feat_sq;
         return;

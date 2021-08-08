@@ -1,5 +1,5 @@
-1:1:0.5 |z p p a
-1:1:0.5 |z a b j |z a |z a
+1:1:0.5 |z p a:2 p p p p
+1:1:0.5 |z a b j |z a |z a p
 1:0:0.5 |z a | d:1 
 1:0:0.5 | a b c d:2
 0:0:0.5 | bring
