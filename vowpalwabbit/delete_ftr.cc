@@ -58,9 +58,9 @@ ForwardIt remove_ftr(ForwardIt first_hash, ForwardIt last_hash, ForwardItFloat f
       {
         *first_hash++ = std::move(*i);
         *first_val++ = std::move(*j);
-        (*first_audit).first = std::move((*k).first);
-        (*first_audit).second = std::move((*k).second);
-        *first_audit++;  // = std::move(*k);
+        // (*first_audit).first = std::move((*k).first);
+        // (*first_audit).second = std::move((*k).second);
+        // *first_audit++;  // = std::move(*k);
       }
     }
   }
