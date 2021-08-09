@@ -42,6 +42,7 @@ struct feature_data
   size_t binarize_flag = false;
   size_t log_flag = false;
   size_t audit_flag = false;
+  size_t log_label = false;
 };
 
 template <class ForwardIt, class ForwardItFloat, class ForwardItPair, class T>
@@ -185,6 +186,15 @@ inline void check_modify_feature(example& ec, namespace_index index, size_t feat
   }
 }
 
+inline void modify_label(example& ec, feature_data data)
+{
+  auto prev_val = ec.l.simple.label;
+  if (data.log_base == 1) { ec.l.simple.label = 0; }
+  else
+    ec.l.simple.label = (ec.l.simple.label <= 0) ? 0 : log(ec.l.simple.label) / log(data.log_base);
+  VW::io::logger::log_warn("Label modified from {} to {} with log_base {}", prev_val, ec.l.simple.label, data.log_base);
+}
+
 void manipulate_features(
     feature_data& data, example& ec, void (*fn)(example& ec, feature_data data, int& idx_ret) = nullptr)
 {
@@ -204,6 +214,7 @@ void manipulate_features(
   data.mod_hash *= multiplier;
 
   if (*fn) data.manip_flag = true;  // Modify after test
+  if (data.log_label) modify_label(ec, data);
   if (data.delete_flag)
     delete_feature(ec, data);
   else
@@ -262,6 +273,7 @@ VW::LEARNER::base_learner* delete_ftr_setup(setup_base_i& stack_builder)
                       .help("Option to delete the feature. No other manipulation will be applied"));
   new_options.add(
       make_option("bin_thresh", data->bin_thresh).help("Specify the threshold to binarize the feature value."));
+  new_options.add(make_option("log_label", data->log_label).help("Option to apply log transform to the label."));
   new_options.add(make_option("log_base", data->log_base).help("Specify the log_base for the feature."));
   if (!options.add_parse_and_check_necessary(new_options)) return nullptr;
 
