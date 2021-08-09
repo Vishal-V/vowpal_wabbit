@@ -41,6 +41,7 @@ struct feature_data
   size_t delete_flag = false;
   size_t binarize_flag = false;
   size_t log_flag = false;
+  size_t audit_flag = false;
 };
 
 template <class ForwardIt, class ForwardItFloat, class ForwardItPair, class T>
@@ -78,6 +79,21 @@ inline void delete_feature(example& ec, feature_data data)
   {
     if (ec.feature_space[static_cast<size_t>(data.index)].indicies[i] == data.ftr_hash)
     {
+      if (data.audit_flag)
+      {
+        unsigned int last_idx = 0, curr_idx = 0;
+        while (curr_idx < ec.feature_space[static_cast<size_t>(data.index)].size())
+        {
+          if (ec.feature_space[static_cast<size_t>(data.index)].indicies[curr_idx] != data.ftr_hash)
+          {
+            ec.feature_space[static_cast<size_t>(data.index)].space_names[last_idx] =
+                ec.feature_space[static_cast<size_t>(data.index)].space_names[curr_idx];
+            last_idx++;
+          }
+          curr_idx++;
+        }
+      }
+
       remove_ftr(ec.feature_space[static_cast<size_t>(data.index)].indicies.begin(),
           ec.feature_space[static_cast<size_t>(data.index)].indicies.end(),
           ec.feature_space[static_cast<size_t>(data.index)].values.begin(),
@@ -308,6 +324,7 @@ VW::LEARNER::base_learner* delete_ftr_setup(setup_base_i& stack_builder)
   if (all.options->was_supplied("mod_ftr"))
     VW::io::logger::log_warn("Setup options for modifying feature : {}", data->ftr_names);
   if (all.options->was_supplied("rename_ftr")) data->rename_flag = true;
+  if (all.options->was_supplied("audit")) data->audit_flag = true;
   if (all.options->was_supplied("del_ftr"))
     data->delete_flag = true;
   else if (all.options->was_supplied("mod_val"))
