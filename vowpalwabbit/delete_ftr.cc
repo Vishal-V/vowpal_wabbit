@@ -123,6 +123,11 @@ inline void modify_feature(example& ec, feature_data data, int& idx_ret)
         ec.feature_space[static_cast<size_t>(data.index)].indicies[idx] = data.mod_hash;
         VW::io::logger::log_warn("Feature renamed to {} with hash {}", data.mod_ftr_name,
             ec.feature_space[static_cast<size_t>(data.index)].indicies[idx]);
+        if (data.audit_flag)
+        {
+          ec.feature_space[static_cast<size_t>(data.index)].space_names[idx].first = data.namespace_name;
+          ec.feature_space[static_cast<size_t>(data.index)].space_names[idx].second = data.mod_ftr_name;
+        }
       }
       if (data.mod_flag)
       {
@@ -197,14 +202,17 @@ void manipulate_features(
   data.mod_hash *= multiplier;
 
   if (*fn) data.manip_flag = true;  // Modify after test
-  if (data.log_label) modify_label(ec, data);
-  if (data.delete_flag)
-    delete_feature(ec, data);
+  if (data.log_label)
+    modify_label(ec, data);
   else
-    modify_feature(ec, data, idx);
+  {
+    if (data.delete_flag)
+      delete_feature(ec, data);
+    else
+      modify_feature(ec, data, idx);
+  }
 
-  if (data.mod_flag || data.binarize_flag || data.log_flag || data.rename_flag)
-    check_modify_feature(ec, data.index, data.mod_hash, idx);
+  if (data.mod_flag || data.binarize_flag || data.log_flag) check_modify_feature(ec, data.index, data.mod_hash, idx);
 }
 
 template <bool is_learn, typename T, typename E>
