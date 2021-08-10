@@ -43,6 +43,7 @@ struct feature_data
   size_t log_flag = false;
   size_t audit_flag = false;
   size_t log_label = false;
+  size_t bin_label = false;
 };
 
 template <class ForwardIt, class ForwardItFloat, class ForwardItPair, class T>
@@ -176,11 +177,22 @@ inline void check_modify_feature(example& ec, namespace_index index, size_t feat
 
 inline void modify_label(example& ec, feature_data data)
 {
-  auto prev_val = ec.l.simple.label;
-  if (data.log_base == 1) { ec.l.simple.label = 0; }
-  else
-    ec.l.simple.label = (ec.l.simple.label <= 0) ? 0 : log(ec.l.simple.label) / log(data.log_base);
-  VW::io::logger::log_warn("Label modified from {} to {} with log_base {}", prev_val, ec.l.simple.label, data.log_base);
+  if (data.log_label)
+  {
+    auto prev_val = ec.l.simple.label;
+    if (data.log_base == 1) { ec.l.simple.label = 0; }
+    else
+      ec.l.simple.label = (ec.l.simple.label <= 0) ? 0 : log(ec.l.simple.label) / log(data.log_base);
+    VW::io::logger::log_warn(
+        "Label modified from {} to {} with log_base {}", prev_val, ec.l.simple.label, data.log_base);
+  }
+  else if (data.bin_label)
+  {
+    auto prev_val = ec.l.simple.label;
+    ec.l.simple.label = (ec.l.simple.label < data.bin_thresh) ? 0 : 1;
+    VW::io::logger::log_warn(
+        "Label modified with thresold {} from {} to {}", data.bin_thresh, prev_val, ec.l.simple.label);
+  }
 }
 
 void manipulate_features(
@@ -202,7 +214,7 @@ void manipulate_features(
   data.mod_hash *= multiplier;
 
   if (*fn) data.manip_flag = true;  // Modify after test
-  if (data.log_label)
+  if (data.log_label || data.bin_label)
     modify_label(ec, data);
   else
   {
@@ -255,7 +267,7 @@ VW::LEARNER::base_learner* delete_ftr_setup(setup_base_i& stack_builder)
   options_i& options = *stack_builder.get_options();
   vw& all = *stack_builder.get_all_pointer();
   auto data = scoped_calloc_or_throw<feature_data>();
-  bool manip_ftr = false, ftr_del = false, label_log = false;
+  bool manip_ftr = false, ftr_del = false, label_log = false, bin_label = false;
 
   option_group_definition new_options("Manipulate features");
   new_options.add(make_option("ftr_manip", manip_ftr).necessary().help("Manipulate the specified feature."));
@@ -270,6 +282,7 @@ VW::LEARNER::base_learner* delete_ftr_setup(setup_base_i& stack_builder)
   new_options.add(
       make_option("bin_thresh", data->bin_thresh).help("Specify the threshold to binarize the feature value."));
   new_options.add(make_option("log_label", label_log).help("Option to apply log transform to the label."));
+  new_options.add(make_option("bin_label", bin_label).help("Option to binarize transform to the label."));
   new_options.add(make_option("log_base", data->log_base).help("Specify the log_base for the feature."));
   if (!options.add_parse_and_check_necessary(new_options)) return nullptr;
 
@@ -280,6 +293,7 @@ VW::LEARNER::base_learner* delete_ftr_setup(setup_base_i& stack_builder)
   if (all.options->was_supplied("rename_ftr")) data->rename_flag = true;
   if (all.options->was_supplied("audit")) data->audit_flag = true;
   if (all.options->was_supplied("log_label")) data->log_label = true;
+  if (all.options->was_supplied("bin_label")) data->bin_label = true;
   if (all.options->was_supplied("del_ftr"))
     data->delete_flag = true;
   else if (all.options->was_supplied("mod_val"))
