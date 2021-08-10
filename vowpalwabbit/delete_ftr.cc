@@ -60,9 +60,7 @@ ForwardIt remove_ftr(ForwardIt first_hash, ForwardIt last_hash, ForwardItFloat f
       {
         *first_hash++ = std::move(*i);
         *first_val++ = std::move(*j);
-        // (*first_audit).first = std::move((*k).first);
-        // (*first_audit).second = std::move((*k).second);
-        // *first_audit++;  // = std::move(*k);
+        if (first_audit != last_audit) { *first_audit = std::move(*k); }
       }
     }
   }
@@ -80,21 +78,6 @@ inline void delete_feature(example& ec, feature_data data)
   {
     if (ec.feature_space[static_cast<size_t>(data.index)].indicies[i] == data.ftr_hash)
     {
-      if (data.audit_flag)
-      {
-        unsigned int last_idx = 0, curr_idx = 0;
-        while (curr_idx < ec.feature_space[static_cast<size_t>(data.index)].size())
-        {
-          if (ec.feature_space[static_cast<size_t>(data.index)].indicies[curr_idx] != data.ftr_hash)
-          {
-            ec.feature_space[static_cast<size_t>(data.index)].space_names[last_idx] =
-                ec.feature_space[static_cast<size_t>(data.index)].space_names[curr_idx];
-            last_idx++;
-          }
-          curr_idx++;
-        }
-      }
-
       remove_ftr(ec.feature_space[static_cast<size_t>(data.index)].indicies.begin(),
           ec.feature_space[static_cast<size_t>(data.index)].indicies.end(),
           ec.feature_space[static_cast<size_t>(data.index)].values.begin(),
@@ -228,6 +211,7 @@ template <bool is_learn, typename T, typename E>
 void predict_or_learn(feature_data& data, T& base, E& ec)
 {
   // TODO: Design a class structure
+  // Do we manipulate sum_feat_sq?
   example* copy_ec = alloc_examples(1);
   copy_example_data_with_label(copy_ec, &ec);
   data.modify = copy_ec;
@@ -252,14 +236,18 @@ void predict_or_learn(feature_data& data, T& base, E& ec)
   }
 }
 
-void finish_example(vw& all, feature_data& data, example&) { output_and_account_example(all, *data.modify); }
+void finish_example(vw& all, feature_data& data, example& ec)
+{
+  output_and_account_example(all, *data.modify);
+  VW::finish_example(all, ec);
+}
 
 VW::LEARNER::base_learner* delete_ftr_setup(setup_base_i& stack_builder)
 {
   options_i& options = *stack_builder.get_options();
   vw& all = *stack_builder.get_all_pointer();
   auto data = scoped_calloc_or_throw<feature_data>();
-  bool manip_ftr = false;
+  bool manip_ftr = false, ftr_del = false, label_log = false;
 
   option_group_definition new_options("Manipulate features");
   new_options.add(make_option("ftr_manip", manip_ftr).necessary().help("Manipulate the specified feature."));
@@ -269,11 +257,11 @@ VW::LEARNER::base_learner* delete_ftr_setup(setup_base_i& stack_builder)
   new_options.add(make_option("mod_val", data->value).help("Specify the modified value for the feature."));
   new_options.add(make_option("rename_ftr", data->mod_ftr_name).help("Specify the new name for the feature."));
 
-  new_options.add(make_option("del_ftr", data->delete_flag)
-                      .help("Option to delete the feature. No other manipulation will be applied"));
+  new_options.add(
+      make_option("del_ftr", ftr_del).help("Option to delete the feature. No other manipulation will be applied"));
   new_options.add(
       make_option("bin_thresh", data->bin_thresh).help("Specify the threshold to binarize the feature value."));
-  new_options.add(make_option("log_label", data->log_label).help("Option to apply log transform to the label."));
+  new_options.add(make_option("log_label", label_log).help("Option to apply log transform to the label."));
   new_options.add(make_option("log_base", data->log_base).help("Specify the log_base for the feature."));
   if (!options.add_parse_and_check_necessary(new_options)) return nullptr;
 
@@ -283,6 +271,7 @@ VW::LEARNER::base_learner* delete_ftr_setup(setup_base_i& stack_builder)
     VW::io::logger::log_warn("Setup options for modifying feature : {}", data->ftr_names);
   if (all.options->was_supplied("rename_ftr")) data->rename_flag = true;
   if (all.options->was_supplied("audit")) data->audit_flag = true;
+  if (all.options->was_supplied("log_label")) data->log_label = true;
   if (all.options->was_supplied("del_ftr"))
     data->delete_flag = true;
   else if (all.options->was_supplied("mod_val"))
