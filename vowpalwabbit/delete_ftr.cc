@@ -61,7 +61,7 @@ ForwardIt remove_ftr(ForwardIt first_hash, ForwardIt last_hash, ForwardItFloat f
       {
         *first_hash++ = std::move(*i);
         *first_val++ = std::move(*j);
-        if (first_audit != last_audit) { *first_audit = std::move(*k); }
+        if (first_audit != last_audit) { *first_audit++ = std::move(*k); }
       }
     }
   }
@@ -79,6 +79,21 @@ inline void delete_feature(example& ec, feature_data data)
   {
     if (ec.feature_space[static_cast<size_t>(data.index)].indicies[i] == data.ftr_hash)
     {
+      if (data.audit_flag)
+      {
+        unsigned int last_idx = 0, curr_idx = 0;
+        while (curr_idx < ec.feature_space[static_cast<size_t>(data.index)].size())
+        {
+          if (ec.feature_space[static_cast<size_t>(data.index)].indicies[curr_idx] != data.ftr_hash)
+          {
+            ec.feature_space[static_cast<size_t>(data.index)].space_names[last_idx] =
+                ec.feature_space[static_cast<size_t>(data.index)].space_names[curr_idx];
+            last_idx++;
+          }
+          curr_idx++;
+        }
+      }
+
       remove_ftr(ec.feature_space[static_cast<size_t>(data.index)].indicies.begin(),
           ec.feature_space[static_cast<size_t>(data.index)].indicies.end(),
           ec.feature_space[static_cast<size_t>(data.index)].values.begin(),
@@ -101,10 +116,10 @@ inline void delete_feature(example& ec, feature_data data)
     else
     {
       VW::io::logger::log_warn(
-          "Deleting Feature: {}", ec.feature_space[static_cast<size_t>(data.index)].indicies.back());
+          "Deleting Feature: {}", data.ftr_hash);
       ec.feature_space[static_cast<size_t>(data.index)].indicies.pop_back();
       ec.feature_space[static_cast<size_t>(data.index)].values.pop_back();
-      // ec.feature_space[static_cast<size_t>(data.index)].space_names.pop_back();
+      // if(data.audit_flag) ec.feature_space[static_cast<size_t>(data.index)].space_names.pop_back();
       ec.num_features--;
       num_ftr_del--;
     }
