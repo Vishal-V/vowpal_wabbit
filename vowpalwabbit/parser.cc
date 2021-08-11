@@ -103,10 +103,7 @@ uint32_t cache_numbits(io_buf* buf, VW::io::reader* filepointer)
   std::vector<char> t(v_length);
   buf->read_file(filepointer, t.data(), v_length);
   VW::version_struct v_tmp(t.data());
-  if (v_tmp != VW::version)
-  {
-    return 0;
-  }
+  if (v_tmp != VW::version) { return 0; }
 
   char temp;
   if (buf->read_file(filepointer, &temp, 1) < 1) THROW("failed to read");
@@ -115,7 +112,9 @@ uint32_t cache_numbits(io_buf* buf, VW::io::reader* filepointer)
 
   uint32_t cache_numbits;
   if (buf->read_file(filepointer, &cache_numbits, sizeof(cache_numbits)) < static_cast<int>(sizeof(cache_numbits)))
-  { return true; }
+  {
+    return true;
+  }
 
   return cache_numbits;
 }
@@ -163,7 +162,9 @@ void set_json_reader(vw& all, bool dsjson = false)
   all.example_parser->decision_service_json = dsjson;
 
   if (dsjson && all.options->was_supplied("extra_metrics"))
-  { all.example_parser->metrics = VW::make_unique<dsjson_metrics>(); }
+  {
+    all.example_parser->metrics = VW::make_unique<dsjson_metrics>();
+  }
 }
 
 void set_daemon_reader(vw& all, bool json = false, bool dsjson = false)
@@ -220,10 +221,12 @@ void reset_source(vw& all, size_t numbits)
       // wait for all predictions to be sent back to client
       {
         std::unique_lock<std::mutex> lock(all.example_parser->output_lock);
-        all.example_parser->output_done.wait(lock, [&] {
-          return all.example_parser->finished_examples == all.example_parser->end_parsed_examples &&
-              all.example_parser->ready_parsed_examples.size() == 0;
-        });
+        all.example_parser->output_done.wait(lock,
+            [&]
+            {
+              return all.example_parser->finished_examples == all.example_parser->end_parsed_examples &&
+                  all.example_parser->ready_parsed_examples.size() == 0;
+            });
       }
 
       all.final_prediction_sink.clear();
@@ -402,7 +405,9 @@ void enable_sources(vw& all, bool quiet, size_t passes, input_options& input_opt
     {
       socklen_t address_size = sizeof(address);
       if (getsockname(all.example_parser->bound_sock, reinterpret_cast<sockaddr*>(&address), &address_size) < 0)
-      { *(all.trace_message) << "getsockname: " << VW::strerror_to_string(errno) << endl; }
+      {
+        *(all.trace_message) << "getsockname: " << VW::strerror_to_string(errno) << endl;
+      }
       std::ofstream port_file;
       port_file.open(input_options.port_file.c_str());
       if (!port_file.is_open()) THROW("error writing port file: " << input_options.port_file);
@@ -673,7 +678,9 @@ void setup_example(vw& all, example* ae)
   if (all.example_parser->sort_features && ae->sorted == false) unique_sort_features(all.parse_mask, ae);
 
   if (all.example_parser->write_cache)
-  { VW::write_example_to_cache(*all.example_parser->output, ae, all.example_parser->lbl_parser, all.parse_mask); }
+  {
+    VW::write_example_to_cache(*all.example_parser->output, ae, all.example_parser->lbl_parser, all.parse_mask);
+  }
 
   ae->partial_prediction = 0.;
   ae->num_features = 0;
@@ -725,12 +732,10 @@ void setup_example(vw& all, example* ae)
 
   if (multiplier != 1)  // make room for per-feature information.
     for (features& fs : *ae)
-      for (auto& j : fs.indicies) j *= multiplier;
+      for (auto& j : fs.indicies) { j *= multiplier; }
+
   ae->num_features = 0;
-  for (const features& fs : *ae)
-  {
-    ae->num_features += fs.size();
-  }
+  for (const features& fs : *ae) { ae->num_features += fs.size(); }
 
   // Set the interactions for this example to the global set.
   ae->interactions = &all.interactions;

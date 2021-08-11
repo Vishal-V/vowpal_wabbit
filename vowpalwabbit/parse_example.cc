@@ -347,7 +347,9 @@ public:
       VW::string_view sv = _line.substr(_read_idx);
       _cur_channel_v = parseFloat(sv.begin(), end_read, sv.end());
       if (end_read + _read_idx >= _line.size())
-      { parserWarning("malformed example! Float expected after : \"", _line.substr(0, _read_idx), "\""); }
+      {
+        parserWarning("malformed example! Float expected after : \"", _line.substr(0, _read_idx), "\"");
+      }
       if (std::isnan(_cur_channel_v))
       {
         _cur_channel_v = 1.f;

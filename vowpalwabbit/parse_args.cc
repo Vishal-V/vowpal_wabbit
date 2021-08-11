@@ -55,7 +55,9 @@ namespace logger = VW::io::logger;
 bool ends_with(std::string const& full_string, std::string const& ending)
 {
   if (full_string.length() > ending.length())
-  { return (full_string.compare(full_string.length() - ending.length(), ending.length(), ending) == 0); }
+  {
+    return (full_string.compare(full_string.length() - ending.length(), ending.length(), ending) == 0);
+  }
   else
   {
     return false;
@@ -171,11 +173,9 @@ void parse_dictionary_argument(vw& all, const std::string& str)
   ssize_t size = 2048, pos, num_read;
   char rc;
   char* buffer = calloc_or_throw<char>(size);
-  do
-  {
+  do {
     pos = 0;
-    do
-    {
+    do {
       num_read = fd->read(&rc, 1);
       if ((rc != EOF) && (num_read > 0)) buffer[pos++] = rc;
       if (pos >= size - 1)
@@ -203,7 +203,9 @@ void parse_dictionary_argument(vw& all, const std::string& str)
     if (*d != ' ' && *d != '\t') continue;                            // reached end of line
     std::string word(c, d - c);
     if (map->find(word) != map->end())  // don't overwrite old values!
-    { continue; }
+    {
+      continue;
+    }
     d--;
     *d = '|';  // set up for parser::read_line
     VW::read_line(all, ec, d);
@@ -555,6 +557,7 @@ void parse_feature_tweaks(
   std::string hash_function("strings");
   uint32_t new_bits;
   std::vector<std::string> spelling_ns;
+  std::vector<std::string> del_features;
   std::vector<std::string> quadratics;
   std::vector<std::string> cubics;
   std::vector<std::string> interactions;
@@ -577,6 +580,7 @@ void parse_feature_tweaks(
   feature_options
       .add(make_option("hash", hash_function).keep().help("how to hash the features. Available options: strings, all"))
       .add(make_option("hash_seed", all.hash_seed).keep().default_value(0).help("seed for hash function"))
+      .add(make_option("delete_ftr", del_features).keep().help("delete respetive features"))
       .add(make_option("ignore", ignores).keep().help("ignore namespaces beginning with character <arg>"))
       .add(make_option("ignore_linear", ignore_linears)
                .keep()
@@ -704,6 +708,8 @@ void parse_feature_tweaks(
     if (!all.interactions.empty()) { all.interactions.clear(); }
   }
 
+  // TODO: if (options.was_supplied("delete_ftr")) {} // Before interactions?
+
   if (options.was_supplied("quadratic"))
   {
     if (!all.logger.quiet) *(all.trace_message) << "creating quadratic features for pairs: ";
@@ -718,10 +724,10 @@ void parse_feature_tweaks(
 
     if (!all.logger.quiet && !options.was_supplied("leave_duplicate_interactions"))
     {
-      bool contains_wildcard_quadratic =
-          std::find_if(quadratics.begin(), quadratics.end(), [](const std::string& interaction) {
-            return interaction.find(wildcard_namespace) != std::string::npos;
-          }) != quadratics.end();
+      bool contains_wildcard_quadratic = std::find_if(quadratics.begin(), quadratics.end(),
+                                             [](const std::string& interaction) {
+                                               return interaction.find(wildcard_namespace) != std::string::npos;
+                                             }) != quadratics.end();
       if (contains_wildcard_quadratic)
       {
         *(all.trace_message) << "\n"
@@ -729,7 +735,6 @@ void parse_feature_tweaks(
                              << "You can use --leave_duplicate_interactions to disable this behaviour.";
       }
     }
-
 
     if (!all.logger.quiet) *(all.trace_message) << endl;
   }
@@ -746,9 +751,10 @@ void parse_feature_tweaks(
     }
     if (!all.logger.quiet) *(all.trace_message) << endl;
 
-    bool contains_wildcard_cubic = std::find_if(cubics.begin(), cubics.end(), [](const std::string& interaction) {
-      return interaction.find(wildcard_namespace) != std::string::npos;
-    }) != cubics.end();
+    bool contains_wildcard_cubic = std::find_if(cubics.begin(), cubics.end(),
+                                       [](const std::string& interaction) {
+                                         return interaction.find(wildcard_namespace) != std::string::npos;
+                                       }) != cubics.end();
     if (contains_wildcard_cubic)
     {
       *(all.trace_message) << "\n"
@@ -1253,7 +1259,9 @@ vw& parse_args(
             all.options->was_supplied("unique_id")) &&
         !(all.options->was_supplied("total") && all.options->was_supplied("node") &&
             all.options->was_supplied("unique_id")))
-    { THROW("you must specificy unique_id, total, and node if you specify any") }
+    {
+      THROW("you must specificy unique_id, total, and node if you specify any")
+    }
 
     if (all.options->was_supplied("span_server"))
     {
@@ -1328,7 +1336,9 @@ void merge_options_from_header_strings(const std::vector<std::string>& strings, 
     // not seem like an unreasonable restriction. The logical check here is: is "string_key" of the form {'-', <digit>,
     // <etc.>}.
     if (opt.string_key.length() > 1 && opt.string_key[0] == '-' && opt.string_key[1] >= '0' && opt.string_key[1] <= '9')
-    { treat_as_value = true; }
+    {
+      treat_as_value = true;
+    }
 
     // File options should always use long form.
 
@@ -1418,7 +1428,9 @@ void parse_modules(
 void instantiate_learner(vw& all, std::unique_ptr<VW::setup_base_i> learner_builder)
 {
   if (!learner_builder)
-  { learner_builder = VW::make_unique<VW::default_reduction_stack_setup>(all, *all.options.get()); }
+  {
+    learner_builder = VW::make_unique<VW::default_reduction_stack_setup>(all, *all.options.get());
+  }
   else
   {
     learner_builder->delayed_state_attach(all, *all.options.get());
@@ -1585,7 +1597,9 @@ vw* initialize_with_builder(std::unique_ptr<options_i, options_deleter_type> opt
     {
       std::vector<std::string> all_initial_regressor_files(all.initial_regressors);
       if (all.options->was_supplied("input_feature_regularizer"))
-      { all_initial_regressor_files.push_back(all.per_feature_regularizer_input); }
+      {
+        all_initial_regressor_files.push_back(all.per_feature_regularizer_input);
+      }
       read_regressor_file(all, all_initial_regressor_files, local_model);
       model = &local_model;
     }
@@ -1619,7 +1633,9 @@ vw* initialize_with_builder(std::unique_ptr<options_i, options_deleter_type> opt
     if (!all.options->get_typed_option<bool>("dry_run").value())
     {
       if (!all.logger.quiet && !all.bfgs && !all.searchstr && !all.options->was_supplied("audit_regressor"))
-      { all.sd->print_update_header(*all.trace_message); }
+      {
+        all.sd->print_update_header(*all.trace_message);
+      }
       all.l->init_driver();
     }
 

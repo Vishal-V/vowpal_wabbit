@@ -60,6 +60,7 @@
 #include "active_cover.h"
 #include "cs_active.h"
 #include "kernel_svm.h"
+#include "delete_ftr.h"
 #include "interact.h"
 #include "OjaNewton.h"
 #include "audit_regressor.h"
@@ -148,6 +149,7 @@ void prepare_reductions(std::vector<std::tuple<std::string, reduction_setup_fn>>
   reductions.push_back(lrqfa_setup);
   reductions.push_back(stagewise_poly_setup);
   reductions.push_back(scorer_setup);
+  reductions.push_back(VW::DELETE_FTR::delete_ftr_setup);
   reductions.push_back(VW::cbzo::setup);
 
   // Reductions

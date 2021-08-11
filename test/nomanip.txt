@@ -1,0 +1,56 @@
+../build/vowpalwabbit/vw -i model.vw -d sample_data_1.txt -p predictions.txt --noconstant --progress 1
+predictions = predictions.txt
+Num weight bits = 18
+learning rate = 0.5
+initial_t = 0
+power_t = 0.5
+using no cache
+Reading datafile = sample_data_1.txt
+num sources = 1
+Enabled reductions: gd, scorer-identity
+average  since         example        example  current  current  current
+loss     last          counter         weight    label  predict features
+1.000000 1.000000            1            1.0   1.0000   0.0000        1
+0.584012 0.168024            2            2.0   1.0000   0.5901        5
+0.580999 0.574973            3            3.0   1.0000   0.2417        2
+0.479144 0.173579            4            4.0   1.0000   0.5834        4
+0.383315 0.000000            5            5.0   0.0000   0.0000        1
+0.486096 1.000000            6            6.0   1.0000   0.0000        1
+0.416654 0.000000            7            7.0   0.0000   0.0000        1
+
+finished run
+number of examples = 7
+weighted example sum = 7.000000
+weighted label sum = 5.000000
+average loss = 0.416654
+best constant = 0.714286
+best constant's loss = 0.204082
+total feature number = 15
+root@e22bdb13e871:~/vowpal_wabbit/test# ../build/vowpalwabbit/vw -i model.vw -d sample_data_1.txt -p predictions.txt --noconstant --progress 1
+predictions = predictions.txt
+Num weight bits = 18
+learning rate = 0.5
+initial_t = 0
+power_t = 0.5
+using no cache
+Reading datafile = sample_data_1.txt
+num sources = 1
+Enabled reductions: gd, scorer-identity
+average  since         example        example  current  current  current
+loss     last          counter         weight    label  predict features
+1.000000 1.000000            1            1.0   1.0000   0.0000        1
+0.584012 0.168024            2            2.0   1.0000   0.5901        5
+0.580999 0.574973            3            3.0   1.0000   0.2417        2
+0.479144 0.173579            4            4.0   1.0000   0.5834        4
+0.383315 0.000000            5            5.0   0.0000   0.0000        1
+0.486096 1.000000            6            6.0   1.0000   0.0000        1
+0.416654 0.000000            7            7.0   0.0000   0.0000        1
+
+finished run
+number of examples = 7
+weighted example sum = 7.000000
+weighted label sum = 5.000000
+average loss = 0.416654
+best constant = 0.714286
+best constant's loss = 0.204082
+total feature number = 15

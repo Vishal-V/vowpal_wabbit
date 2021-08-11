@@ -16,6 +16,10 @@ BOOST_AUTO_TEST_CASE(predict_modifying_state)
     auto& pre_learn_predict_example = *VW::read_example(vw, "0.19574759682114784 | 1:1.430");
     auto& learn_example = *VW::read_example(vw, "0.19574759682114784 | 1:1.430");
     auto& predict_example = *VW::read_example(vw, "| 1:1.0");
+    // TODO: Add the delete feature function here and it should delete the feature 1
+    // Takes in learn_example and which feature and delete that feature
+    // Simple test case -> reduction stuff is plumbing work
+    // Copy the function over and make the reduction
 
     vw.predict(pre_learn_predict_example);
     vw.finish_example(pre_learn_predict_example);
